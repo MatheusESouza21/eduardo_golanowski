@@ -1,10 +1,10 @@
 import mysql.connector
-from matheuseduardodb_sa import *
+from matheuseduardodb_sa import matheuseduardodb_sa
 
 class Usuarios(object):
-    def __init__(self, id_usuario=0, nome="", senha="",tipo=""):
+    def __init__(self, id_usuario=0, nome="", senha="", tipo=""):
         self.info = {}
-        self.idusuario = id_usuario
+        self.id_usuario = id_usuario
         self.nome = nome
         self.tipo = tipo
         self.senha = senha
@@ -25,8 +25,8 @@ class Usuarios(object):
         banco = matheuseduardodb_sa()
         try:
             c = banco.conexao.cursor()
-            c.execute("UPDATE usuario SET nome=%s, usuario=%s, senha=%s WHERE id_usuario=%s",
-                      (self.nome, self.usuario, self.senha, self.id_usuario))
+            c.execute("UPDATE usuario SET nome=%s, tipo=%s, senha=%s WHERE id_usuario=%s",
+                      (self.nome, self.tipo, self.senha, self.id_usuario))
             banco.conexao.commit()
             c.close()
             return "Usuário atualizado com sucesso!"
@@ -48,10 +48,10 @@ class Usuarios(object):
         banco = matheuseduardodb_sa()
         try:
             c = banco.conexao.cursor()
-            c.execute("SELECT * FROM usuario WHERE idUsuario=%s", (id_usuario,))
+            c.execute("SELECT id_usuario, nome, tipo, senha FROM usuario WHERE id_usuario=%s", (id_usuario,))
             usuario = c.fetchone()
             if usuario:
-                self.id_usuario, self.nome, self.telefone, self.email, self.usuario, self.senha = usuario
+                self.id_usuario, self.nome, self.tipo, self.senha = usuario
             c.close()
             return "Busca feita com sucesso!"
         except Exception as e:
