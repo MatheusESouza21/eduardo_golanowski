@@ -2,13 +2,13 @@ import mysql.connector
 
 def conectar():
     try:
-        conexao = mysql.connector.connect(
+        conn = mysql.connector.connect(
             host='localhost',
             user='root',
-            password='',
-            database='matheuseduardodb_sa'
+            password='root',
+            database='golanowskidb_sa'
         )
-        return conexao
+        return conn
     except mysql.connector.Error as err:
         print(f"Erro de conexão: {err}")
         return None
