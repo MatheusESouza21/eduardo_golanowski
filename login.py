@@ -85,7 +85,7 @@ root.geometry("400x400")  # Aumentei a altura para acomodar o novo botão
 frame = ctk.CTkFrame(master=root)
 frame.pack(pady=20, padx=40, fill="both", expand=True)
 
-label_titulo = ctk.CTkLabel(master=frame, text="Sistema de Login", font=("Roboto", 24))
+label_titulo = ctk.CTkLabel(master=frame, text="Login", font=("Roboto", 24))
 label_titulo.pack(pady=12, padx=10)
 
 # Campo de usuário

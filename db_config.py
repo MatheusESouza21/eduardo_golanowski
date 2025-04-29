@@ -5,8 +5,8 @@ def conectar():
         conn = mysql.connector.connect(
             host='localhost',
             user='root',
-            password='',
-            database='matheuseduardodb_sa'
+            password='root',
+            database='golanowskidb_sa'
         )
         return conn
     except mysql.connector.Error as err:
