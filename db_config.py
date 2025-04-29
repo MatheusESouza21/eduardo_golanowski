@@ -2,5 +2,14 @@ MYSQL_HOST = 'localhost'
 MYSQL_USER = 'root'
 MYSQL_PASSWORD = ''
 MYSQL_DATABASE = 'matheuseduardodb_sa'
-#PARA RODAR O PROJETO NAO POSSO ESQUECER DE DIGITAR O CODIGO ABAIXO NO CONSOLE(TELA DE EXECUÇÃO)
+import mysql.connector
+
+def conectar():
+ 
+    return mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='',
+        database='matheuseduardodb_sa'
+    )
 # pip install mysql-connector-python
