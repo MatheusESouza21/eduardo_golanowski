@@ -1,27 +1,189 @@
 import customtkinter as ctk
 from db_config import conectar
 import tkinter.messagebox as messagebox
+import re  # Para validação de CPF
 
-# Configuração do tema
-ctk.set_appearance_mode("System")  # "Light", "Dark" ou "System"
-ctk.set_default_color_theme("blue")  # Temas: "blue", "green", "dark-blue"
-
-def abrir():
-    janela = ctk.CTkToplevel()
-    janela.title("CRUD - Funcionário")
-    janela.geometry("900x700")
+class FuncionarioCRUD:
+    def __init__(self):
+        self.janela = ctk.CTkToplevel()
+        self.janela.title("CRUD - Funcionário")
+        self.janela.geometry("1000x800")
+        self.janela.resizable(False, False)
+        
+        # Configuração do tema
+        ctk.set_appearance_mode("System")
+        ctk.set_default_color_theme("blue")
+        
+        self.criar_interface()
+        self.listar_funcionarios()
     
-    # Frame principal
-    main_frame = ctk.CTkFrame(master=janela)
-    main_frame.pack(pady=20, padx=20, fill="both", expand=True)
-    
-    # Frame do formulário
-    form_frame = ctk.CTkFrame(master=main_frame)
-    form_frame.pack(pady=10, padx=10, fill="x")
+    def criar_interface(self):
+        # Frame principal
+        self.main_frame = ctk.CTkFrame(self.janela)
+        self.main_frame.pack(pady=20, padx=20, fill="both", expand=True)
+        
+        # Frame do formulário
+        self.form_frame = ctk.CTkFrame(self.main_frame)
+        self.form_frame.pack(pady=10, padx=10, fill="x")
 
-    def listar_funcionarios():
-        # Limpa o texto atual
-        textbox.delete("1.0", ctk.END)
+        # Título
+        ctk.CTkLabel(
+            self.form_frame, 
+            text="Cadastro de Funcionários", 
+            font=("Arial", 14, "bold")
+        ).pack(pady=5)
+
+        # Campos do formulário
+        self.criar_campos_formulario()
+        
+        # Frame de botões
+        self.btn_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        self.btn_frame.pack(pady=10)
+        
+        # Botões de ação
+        ctk.CTkButton(
+            self.btn_frame, 
+            text="Cadastrar", 
+            command=self.inserir_funcionario,
+            width=120
+        ).pack(side="left", padx=5)
+        
+        ctk.CTkButton(
+            self.btn_frame, 
+            text="Limpar", 
+            command=self.limpar_campos,
+            fg_color="gray",
+            hover_color="darkgray",
+            width=120
+        ).pack(side="left", padx=5)
+        
+        # Área de listagem
+        self.list_frame = ctk.CTkFrame(self.main_frame)
+        self.list_frame.pack(pady=10, padx=10, fill="both", expand=True)
+        
+        ctk.CTkLabel(
+            self.list_frame, 
+            text="Lista de Funcionários", 
+            font=("Arial", 14, "bold")
+        ).pack(pady=5)
+
+        # Textbox com scrollbar para exibição
+        self.scrollbar = ctk.CTkScrollbar(self.list_frame)
+        self.scrollbar.pack(side="right", fill="y")
+
+        self.textbox = ctk.CTkTextbox(
+            self.list_frame, 
+            yscrollcommand=self.scrollbar.set,
+            font=("Courier New", 12),
+            wrap="none"
+        )
+        self.textbox.pack(pady=5, padx=5, fill="both", expand=True)
+
+        self.scrollbar.configure(command=self.textbox.yview)
+        
+        # Botão de atualizar
+        ctk.CTkButton(
+            self.list_frame,
+            text="Atualizar Lista",
+            command=self.listar_funcionarios
+        ).pack(pady=5)
+    
+    def criar_campos_formulario(self):
+        campos_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        campos_frame.pack(pady=10, padx=10, fill="x")
+        
+        # Dicionário para armazenar os campos
+        self.campos = {}
+        
+        # Configuração dos campos
+        campos_config = [
+            ("nome", "Nome Completo:", 300),
+            ("cargo", "Cargo:", 300),
+            ("cpf", "CPF:", 150, "000.000.000-00"),
+            ("salario", "Salário (R$):", 150, "0.00")
+        ]
+        
+        for idx, (nome, label, largura, *placeholder) in enumerate(campos_config):
+            ctk.CTkLabel(campos_frame, text=label).grid(row=idx, column=0, padx=5, pady=5, sticky="e")
+            
+            placeholder_text = placeholder[0] if placeholder else ""
+            self.campos[nome] = ctk.CTkEntry(
+                campos_frame, 
+                width=largura,
+                placeholder_text=placeholder_text
+            )
+            self.campos[nome].grid(row=idx, column=1, padx=5, pady=5, sticky="w")
+    
+    def validar_cpf(self, cpf):
+        # Remove caracteres não numéricos
+        cpf = re.sub(r'[^0-9]', '', cpf)
+        
+        # Verifica se tem 11 dígitos
+        if len(cpf) != 11:
+            return False
+        
+        # Verifica se todos os dígitos são iguais
+        if cpf == cpf[0] * 11:
+            return False
+        
+        # Cálculo do primeiro dígito verificador
+        soma = 0
+        for i in range(9):
+            soma += int(cpf[i]) * (10 - i)
+        resto = 11 - (soma % 11)
+        digito1 = resto if resto < 10 else 0
+        
+        # Cálculo do segundo dígito verificador
+        soma = 0
+        for i in range(10):
+            soma += int(cpf[i]) * (11 - i)
+        resto = 11 - (soma % 11)
+        digito2 = resto if resto < 10 else 0
+        
+        # Verifica se os dígitos calculados conferem
+        return int(cpf[9]) == digito1 and int(cpf[10]) == digito2
+    
+    def validar_campos(self):
+        # Verifica campos obrigatórios
+        if not all([
+            self.campos["nome"].get(),
+            self.campos["cargo"].get(),
+            self.campos["cpf"].get(),
+            self.campos["salario"].get()
+        ]):
+            messagebox.showerror("Erro", "Preencha todos os campos obrigatórios!")
+            return False
+        
+        # Valida CPF
+        cpf = self.campos["cpf"].get()
+        if not self.validar_cpf(cpf):
+            messagebox.showerror("Erro", "CPF inválido!")
+            return False
+        
+        # Valida salário
+        try:
+            salario = float(self.campos["salario"].get().replace(",", "."))
+            if salario <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Erro", "Salário deve ser um número positivo!")
+            return False
+        
+        return True
+    
+    def formatar_cpf(self, cpf):
+        # Remove tudo que não é dígito
+        cpf = re.sub(r'[^0-9]', '', cpf)
+        
+        # Formata com pontos e traço
+        return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+    
+    def limpar_campos(self):
+        for campo in self.campos.values():
+            campo.delete(0, ctk.END)
+    
+    def listar_funcionarios(self):
+        self.textbox.delete("1.0", ctk.END)
         
         conn = conectar()
         cursor = conn.cursor()
@@ -33,109 +195,53 @@ def abrir():
             """)
             
             # Cabeçalho
-            textbox.insert(ctk.END, "ID  | NOME                 | CARGO              | CPF           | SALÁRIO\n")
-            textbox.insert(ctk.END, "-"*80 + "\n")
+            self.textbox.insert(ctk.END, "ID  | NOME                 | CARGO              | CPF           | SALÁRIO\n")
+            self.textbox.insert(ctk.END, "-"*80 + "\n")
             
             # Dados
             for funcionario in cursor.fetchall():
-                textbox.insert(ctk.END, 
+                cpf_formatado = self.formatar_cpf(funcionario[3])
+                self.textbox.insert(ctk.END, 
                     f"{funcionario[0]:<4}| {funcionario[1][:20]:<20}| {funcionario[2][:20]:<20}| "
-                    f"{funcionario[3]:<14}| R${funcionario[4]:<10.2f}\n"
+                    f"{cpf_formatado:<14}| R${funcionario[4]:<10.2f}\n"
                 )
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao carregar funcionários: {str(e)}")
         finally:
             conn.close()
-
-    def inserir_funcionario():
-        # Validação dos campos
-        if not all([
-            entry_nome.get(),
-            entry_cargo.get(),
-            entry_cpf.get(),
-            entry_salario.get().replace('.', '').isdigit()
-        ]):
-            messagebox.showerror("Erro", "Preencha todos os campos corretamente!")
+    
+    def inserir_funcionario(self):
+        if not self.validar_campos():
             return
             
         conn = conectar()
         cursor = conn.cursor()
         try:
+            # Formata CPF (remove máscara para armazenar)
+            cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
+            
             cursor.execute("""
                 INSERT INTO funcionario (nome, cargo, cpf, salario)
                 VALUES (%s, %s, %s, %s)
             """, (
-                entry_nome.get(),
-                entry_cargo.get(),
-                entry_cpf.get(),
-                float(entry_salario.get())
+                self.campos["nome"].get(),
+                self.campos["cargo"].get(),
+                cpf,
+                float(self.campos["salario"].get().replace(",", "."))
             ))
             conn.commit()
             messagebox.showinfo("Sucesso", "Funcionário cadastrado com sucesso!")
             
-            # Limpa os campos
-            entry_nome.delete(0, ctk.END)
-            entry_cargo.delete(0, ctk.END)
-            entry_cpf.delete(0, ctk.END)
-            entry_salario.delete(0, ctk.END)
-            
-            # Atualiza a lista
-            listar_funcionarios()
+            self.limpar_campos()
+            self.listar_funcionarios()
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao inserir funcionário: {str(e)}")
         finally:
             conn.close()
 
-    # Widgets do formulário
-    ctk.CTkLabel(form_frame, text="Cadastro de Funcionários", font=("Arial", 14, "bold")).pack(pady=5)
+def abrir():
+    app = FuncionarioCRUD()
+    app.janela.mainloop()
 
-    # Grid de campos
-    campos_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-    campos_frame.pack(pady=10, padx=10, fill="x")
-
-    # Nome
-    ctk.CTkLabel(campos_frame, text="Nome Completo:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
-    entry_nome = ctk.CTkEntry(campos_frame, width=300)
-    entry_nome.grid(row=0, column=1, padx=5, pady=5, sticky="w")
-
-    # Cargo
-    ctk.CTkLabel(campos_frame, text="Cargo:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    entry_cargo = ctk.CTkEntry(campos_frame, width=300)
-    entry_cargo.grid(row=1, column=1, padx=5, pady=5, sticky="w")
-
-    # CPF
-    ctk.CTkLabel(campos_frame, text="CPF:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
-    entry_cpf = ctk.CTkEntry(campos_frame, width=150, placeholder_text="000.000.000-00")
-    entry_cpf.grid(row=2, column=1, padx=5, pady=5, sticky="w")
-
-    # Salário
-    ctk.CTkLabel(campos_frame, text="Salário (R$):").grid(row=3, column=0, padx=5, pady=5, sticky="e")
-    entry_salario = ctk.CTkEntry(campos_frame, width=150, placeholder_text="0.00")
-    entry_salario.grid(row=3, column=1, padx=5, pady=5, sticky="w")
-
-    # Botão de inserir
-    btn_inserir = ctk.CTkButton(form_frame, text="Cadastrar Funcionário", command=inserir_funcionario)
-    btn_inserir.pack(pady=10)
-
-    # Área de listagem
-    list_frame = ctk.CTkFrame(main_frame)
-    list_frame.pack(pady=10, padx=10, fill="both", expand=True)
-
-    ctk.CTkLabel(list_frame, text="Lista de Funcionários", font=("Arial", 14, "bold")).pack(pady=5)
-
-    # Textbox com scrollbar para exibição
-    scrollbar = ctk.CTkScrollbar(list_frame)
-    scrollbar.pack(side="right", fill="y")
-
-    textbox = ctk.CTkTextbox(
-        list_frame, 
-        yscrollcommand=scrollbar.set,
-        font=("Courier New", 12),  # Fonte monoespaçada para alinhamento
-        wrap="none"
-    )
-    textbox.pack(pady=5, padx=5, fill="both", expand=True)
-
-    scrollbar.configure(command=textbox.yview)
-
-    # Carrega os funcionários inicialmente
-    listar_funcionarios()
+if __name__ == "__main__":
+    abrir()

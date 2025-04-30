@@ -1,118 +1,130 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from db_config import conectar
-from compra import abrir_tela_compra
-from admin_crud import abrir_menu_admin
 
 # Configuração do tema
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
-def verificar_login(usuario, senha):
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("SELECT status FROM usuario WHERE nome = %s AND senha = %s", (usuario, senha))
-    resultado = cursor.fetchone()
-    conn.close()
-    return resultado[0] if resultado else None
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("Sistema de Login")
+        self.geometry("600x400")
+        self.resizable(False, False)
+        
+        # Container principal
+        self.container = ctk.CTkFrame(self)
+        self.container.pack(fill="both", expand=True)
+        
+        # Dicionário para armazenar as telas
+        self.telas = {}
+        
+        # Criar todas as telas
+        self.criar_tela_login()
+        self.criar_tela_cadastro()
+        
+        # Mostrar a tela inicial
+        self.mostrar_tela("login")
 
-def criar_usuario(nome, senha, status="comum"):
-    conn = conectar()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO usuario (nome, senha, status) VALUES (%s, %s, %s)", 
-                      (nome, senha, status))
-        conn.commit()
-        return True
-    except Exception as e:
-        messagebox.showerror("Erro", f"Não foi possível criar usuário: {str(e)}")
-        return False
-    finally:
+    def criar_tela_login(self):
+        frame = ctk.CTkFrame(self.container)
+        self.telas["login"] = frame
+        
+        label_titulo = ctk.CTkLabel(frame, text="Login", font=("Roboto", 24))
+        label_titulo.pack(pady=20)
+        
+        # Campo de usuário
+        ctk.CTkLabel(frame, text="Usuário", font=("Roboto", 12)).pack()
+        self.entry_usuario = ctk.CTkEntry(frame, width=200)
+        self.entry_usuario.pack(pady=5)
+        
+        # Campo de senha
+        ctk.CTkLabel(frame, text="Senha", font=("Roboto", 12)).pack()
+        self.entry_senha = ctk.CTkEntry(frame, width=200, show="*")
+        self.entry_senha.pack(pady=5)
+        
+        # Botão de login
+        ctk.CTkButton(frame, text="Entrar", command=self.verificar_login).pack(pady=15)
+        
+        # Botão para cadastro
+        ctk.CTkButton(frame, text="Criar Nova Conta", command=lambda: self.mostrar_tela("cadastro"),
+                     fg_color="transparent", border_width=1).pack(pady=5)
+
+    def criar_tela_cadastro(self):
+        frame = ctk.CTkFrame(self.container)
+        self.telas["cadastro"] = frame
+        
+        label_titulo = ctk.CTkLabel(frame, text="Criar Nova Conta", font=("Roboto", 24))
+        label_titulo.pack(pady=20)
+        
+        # Campos do formulário
+        ctk.CTkLabel(frame, text="Novo Usuário").pack()
+        self.novo_usuario = ctk.CTkEntry(frame, width=200)
+        self.novo_usuario.pack(pady=5)
+        
+        ctk.CTkLabel(frame, text="Senha").pack()
+        self.nova_senha = ctk.CTkEntry(frame, width=200, show="*")
+        self.nova_senha.pack(pady=5)
+        
+        ctk.CTkLabel(frame, text="Confirmar Senha").pack()
+        self.confirmar_senha = ctk.CTkEntry(frame, width=200, show="*")
+        self.confirmar_senha.pack(pady=5)
+        
+        # Botões
+        ctk.CTkButton(frame, text="Criar Conta", command=self.criar_usuario).pack(pady=15)
+        ctk.CTkButton(frame, text="Voltar", command=lambda: self.mostrar_tela("login"),
+                     fg_color="transparent", border_width=1).pack(pady=5)
+
+    def mostrar_tela(self, nome_tela):
+        # Esconde todas as telas
+        for tela in self.telas.values():
+            tela.pack_forget()
+        
+        # Mostra a tela solicitada
+        self.telas[nome_tela].pack(fill="both", expand=True)
+
+    def verificar_login(self):
+        usuario = self.entry_usuario.get()
+        senha = self.entry_senha.get()
+        
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute("SELECT tipo FROM usuario WHERE nome = %s AND senha = %s", (usuario, senha))
+        resultado = cursor.fetchone()
         conn.close()
+        
+        if resultado:
+            tipo = resultado[0]
+            self.destroy()  # Fecha a janela de login
+            
+            if tipo == "comum":
+                from compra import abrir_tela_compra
+                abrir_tela_compra()
+            elif tipo == "administrador":
+                from admin_crud import abrir_menu_admin
+                abrir_menu_admin()
+        else:
+            messagebox.showerror("Erro", "Usuário ou senha inválidos")
 
-def abrir_janela_cadastro():
-    janela_cadastro = ctk.CTkToplevel(root)
-    janela_cadastro.title("Criar Nova Conta")
-    janela_cadastro.geometry("400x350")
-    
-    frame_cadastro = ctk.CTkFrame(master=janela_cadastro)
-    frame_cadastro.pack(pady=20, padx=40, fill="both", expand=True)
-    
-    ctk.CTkLabel(frame_cadastro, text="Criar Nova Conta", font=("Roboto", 20)).pack(pady=12)
-    
-    # Campos do formulário
-    ctk.CTkLabel(frame_cadastro, text="Novo Usuário").pack(pady=(5, 0))
-    novo_usuario = ctk.CTkEntry(frame_cadastro)
-    novo_usuario.pack(pady=5)
-    
-    ctk.CTkLabel(frame_cadastro, text="Senha").pack(pady=(5, 0))
-    nova_senha = ctk.CTkEntry(frame_cadastro, show="*")
-    nova_senha.pack(pady=5)
-    
-    ctk.CTkLabel(frame_cadastro, text="Confirmar Senha").pack(pady=(5, 0))
-    confirmar_senha = ctk.CTkEntry(frame_cadastro, show="*")
-    confirmar_senha.pack(pady=5)
-    
-    def finalizar_cadastro():
-        if nova_senha.get() != confirmar_senha.get():
+    def criar_usuario(self):
+        if self.nova_senha.get() != self.confirmar_senha.get():
             messagebox.showerror("Erro", "As senhas não coincidem!")
             return
             
-        if criar_usuario(novo_usuario.get(), nova_senha.get()):
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("INSERT INTO usuario (nome, senha, tipo) VALUES (%s, %s, %s)", 
+                         (self.novo_usuario.get(), self.nova_senha.get(), "comum"))
+            conn.commit()
             messagebox.showinfo("Sucesso", "Conta criada com sucesso!")
-            janela_cadastro.destroy()
-    
-    ctk.CTkButton(frame_cadastro, text="Criar Conta", command=finalizar_cadastro).pack(pady=20)
+            self.mostrar_tela("login")
+        except Exception as e:
+            messagebox.showerror("Erro", f"Não foi possível criar usuário: {str(e)}")
+        finally:
+            conn.close()
 
-def login():
-    usuario = entry_usuario.get()
-    senha = entry_senha.get()
-    status = verificar_login(usuario, senha)
-
-    if status == "comum":
-        root.destroy()
-        abrir_tela_compra()
-    elif status == "administrador":
-        root.destroy()
-        abrir_menu_admin()
-    else:
-        messagebox.showerror("Erro", "Usuário ou senha inválidos")
-
-root = ctk.CTk()
-root.title("Login")
-root.geometry("400x400")  # Aumentei a altura para acomodar o novo botão
-
-frame = ctk.CTkFrame(master=root)
-frame.pack(pady=20, padx=40, fill="both", expand=True)
-
-label_titulo = ctk.CTkLabel(master=frame, text="Login", font=("Roboto", 24))
-label_titulo.pack(pady=12, padx=10)
-
-# Campo de usuário
-label_usuario = ctk.CTkLabel(master=frame, text="Usuário", font=("Roboto", 12))
-label_usuario.pack(pady=(10, 0))
-entry_usuario = ctk.CTkEntry(master=frame, placeholder_text="Digite seu usuário")
-entry_usuario.pack(pady=5, padx=10)
-
-# Campo de senha
-label_senha = ctk.CTkLabel(master=frame, text="Senha", font=("Roboto", 12))
-label_senha.pack(pady=(10, 0))
-entry_senha = ctk.CTkEntry(master=frame, placeholder_text="Digite sua senha", show="*")
-entry_senha.pack(pady=5, padx=10)
-
-# Botão de login
-btn_login = ctk.CTkButton(master=frame, text="Entrar", command=login)
-btn_login.pack(pady=10, padx=10)
-
-# Botão de criar conta
-btn_criar_conta = ctk.CTkButton(master=frame, text="Criar Nova Conta", 
-                               fg_color="transparent", border_width=2,
-                               text_color=("gray10", "#DCE4EE"),
-                               command=abrir_janela_cadastro)
-btn_criar_conta.pack(pady=5, padx=10)
-
-# Checkbox para lembrar usuário
-check_lembrar = ctk.CTkCheckBox(master=frame, text="Lembrar usuário")
-check_lembrar.pack(pady=5, padx=10)
-
-root.mainloop()
+if __name__ == "__main__":
+    app = App()
+    app.mainloop()
