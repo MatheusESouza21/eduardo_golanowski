@@ -3,27 +3,119 @@ from db_config import conectar
 from tkinter import messagebox
 
 # Configuração do tema
-ctk.set_appearance_mode("System")  # "Light", "Dark" ou "System"
-ctk.set_default_color_theme("blue")  # Temas: "blue", "green", "dark-blue"
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
 
-def abrir():
-    janela = ctk.CTkToplevel()
-    janela.title("CRUD - Produto")
-    janela.geometry("800x700")
+class CrudProdutos:
+    def __init__(self, master):
+        self.master = master
+        master.title("CRUD - Produto")
+        master.geometry("800x700")
+        
+        self.criar_widgets()
+        self.listar_produtos()
     
-    # Frame principal
-    main_frame = ctk.CTkFrame(master=janela)
-    main_frame.pack(pady=20, padx=20, fill="both", expand=True)
-    
-    # Frame do formulário
-    form_frame = ctk.CTkFrame(master=main_frame)
-    form_frame.pack(pady=10, padx=10, fill="x")
+    def criar_widgets(self):
+        # Frame principal
+        self.main_frame = ctk.CTkFrame(master=self.master)
+        self.main_frame.pack(pady=20, padx=20, fill="both", expand=True)
+        
+        # Frame do formulário
+        self.form_frame = ctk.CTkFrame(master=self.main_frame)
+        self.form_frame.pack(pady=10, padx=10, fill="x")
 
-    def listar_produtos():
-        # Limpa o texto atual
-        textbox.delete("1.0", ctk.END)
+        # Título
+        ctk.CTkLabel(self.form_frame, text="Cadastro de Produtos", font=("Arial", 14, "bold")).pack(pady=5)
+
+        # Grid de campos
+        self.campos_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        self.campos_frame.pack(pady=10, padx=10, fill="x")
+
+        # Campos de entrada
+        self.criar_campos()
+        
+        # Botões
+        self.criar_botoes()
+        
+        # Área de listagem
+        self.criar_listagem()
+
+    def criar_campos(self):
+        # Nome
+        ctk.CTkLabel(self.campos_frame, text="Nome:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        self.entry_nome = ctk.CTkEntry(self.campos_frame, width=300)
+        self.entry_nome.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+
+        # Descrição
+        ctk.CTkLabel(self.campos_frame, text="Descrição:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        self.entry_descricao = ctk.CTkEntry(self.campos_frame, width=300)
+        self.entry_descricao.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+
+        # Quantidade
+        ctk.CTkLabel(self.campos_frame, text="Quantidade:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        self.entry_quantidade = ctk.CTkEntry(self.campos_frame, width=100)
+        self.entry_quantidade.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+
+        # Preço
+        ctk.CTkLabel(self.campos_frame, text="Preço (R$):").grid(row=3, column=0, padx=5, pady=5, sticky="e")
+        self.entry_preco = ctk.CTkEntry(self.campos_frame, width=100)
+        self.entry_preco.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+
+        # Fornecedor
+        ctk.CTkLabel(self.campos_frame, text="ID Fornecedor:").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        self.entry_id_fornecedor = ctk.CTkEntry(self.campos_frame, width=100)
+        self.entry_id_fornecedor.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+
+    def criar_botoes(self):
+        # Frame de botões
+        self.botoes_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        self.botoes_frame.pack(pady=10)
+
+        # Botões
+        self.btn_inserir = ctk.CTkButton(self.botoes_frame, text="Inserir", command=self.inserir_produto)
+        self.btn_inserir.grid(row=0, column=0, padx=5)
+
+        self.btn_atualizar = ctk.CTkButton(self.botoes_frame, text="Atualizar", command=self.atualizar_produto)
+        self.btn_atualizar.grid(row=0, column=1, padx=5)
+
+        self.btn_remover = ctk.CTkButton(self.botoes_frame, text="Remover", command=self.remover_produto)
+        self.btn_remover.grid(row=0, column=2, padx=5)
+
+        self.btn_limpar = ctk.CTkButton(self.botoes_frame, text="Limpar", command=self.limpar_campos)
+        self.btn_limpar.grid(row=0, column=3, padx=5)
+
+    def criar_listagem(self):
+        # Frame de listagem
+        self.list_frame = ctk.CTkFrame(self.main_frame)
+        self.list_frame.pack(pady=10, padx=10, fill="both", expand=True)
+
+        # Título
+        ctk.CTkLabel(self.list_frame, text="Lista de Produtos", font=("Arial", 14, "bold")).pack(pady=5)
+
+        # Textbox com scrollbar
+        self.scrollbar = ctk.CTkScrollbar(self.list_frame)
+        self.scrollbar.pack(side="right", fill="y")
+
+        self.textbox = ctk.CTkTextbox(
+            self.list_frame, 
+            yscrollcommand=self.scrollbar.set,
+            font=("Courier New", 12),
+            wrap="none"
+        )
+        self.textbox.pack(pady=5, padx=5, fill="both", expand=True)
+        self.scrollbar.configure(command=self.textbox.yview)
+
+        # Bind para seleção de produto
+        self.textbox.bind("<Button-1>", self.selecionar_produto)
+
+    def listar_produtos(self):
+        self.textbox.delete("1.0", ctk.END)
         
         conn = conectar()
+        if conn is None:
+            messagebox.showerror("Erro", "Não foi possível conectar ao banco de dados")
+            return
+            
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -35,12 +127,12 @@ def abrir():
             """)
             
             # Cabeçalho
-            textbox.insert(ctk.END, "ID  | NOME                | DESCRIÇÃO          | QTD | PREÇO   | FORNECEDOR\n")
-            textbox.insert(ctk.END, "-"*90 + "\n")
+            self.textbox.insert(ctk.END, "ID  | NOME                | DESCRIÇÃO          | QTD | PREÇO   | FORNECEDOR\n")
+            self.textbox.insert(ctk.END, "-"*90 + "\n")
             
             # Dados
             for produto in cursor.fetchall():
-                textbox.insert(ctk.END, 
+                self.textbox.insert(ctk.END, 
                     f"{produto[0]:<4}| {produto[1][:20]:<20}| {produto[2][:20]:<20}| "
                     f"{produto[3]:<4}| R${produto[4]:<7.2f}| {produto[5] or 'N/D'}\n"
                 )
@@ -49,102 +141,66 @@ def abrir():
         finally:
             conn.close()
 
-    def inserir_produto():
-        # Validação dos campos
+    def inserir_produto(self):
+        # Validação
         if not all([
-            entry_nome.get(),
-            entry_quantidade.get().isdigit(),
-            entry_preco.get().replace('.', '').isdigit(),
-            entry_id_fornecedor.get().isdigit()
+            self.entry_nome.get(),
+            self.entry_quantidade.get().isdigit(),
+            self.entry_preco.get().replace('.', '').isdigit(),
+            self.entry_id_fornecedor.get().isdigit()
         ]):
             messagebox.showerror("Erro", "Preencha todos os campos corretamente!")
             return
             
         conn = conectar()
+        if conn is None:
+            return
+            
         cursor = conn.cursor()
         try:
             cursor.execute("""
                 INSERT INTO produto (nome, descricao, quantidade, preco, id_fornecedor)
                 VALUES (%s, %s, %s, %s, %s)
             """, (
-                entry_nome.get(),
-                entry_descricao.get(),
-                int(entry_quantidade.get()),
-                float(entry_preco.get()),
-                int(entry_id_fornecedor.get())
+                self.entry_nome.get(),
+                self.entry_descricao.get(),
+                int(self.entry_quantidade.get()),
+                float(self.entry_preco.get()),
+                int(self.entry_id_fornecedor.get())
             ))
             conn.commit()
             messagebox.showinfo("Sucesso", "Produto cadastrado com sucesso!")
-            
-            # Limpa os campos
-            entry_nome.delete(0, ctk.END)
-            entry_descricao.delete(0, ctk.END)
-            entry_quantidade.delete(0, ctk.END)
-            entry_preco.delete(0, ctk.END)
-            entry_id_fornecedor.delete(0, ctk.END)
-            
-            # Atualiza a lista
-            listar_produtos()
+            self.limpar_campos()
+            self.listar_produtos()
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao inserir produto: {str(e)}")
         finally:
             conn.close()
 
-    # Widgets do formulário
-    ctk.CTkLabel(form_frame, text="Cadastro de Produtos", font=("Arial", 14, "bold")).pack(pady=5)
+    def atualizar_produto(self):
+        # Implementação similar à inserção, mas com UPDATE
+        pass
 
-    # Grid de campos
-    campos_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-    campos_frame.pack(pady=10, padx=10, fill="x")
+    def remover_produto(self):
+        # Implementação para deletar produto
+        pass
 
-    # Nome
-    ctk.CTkLabel(campos_frame, text="Nome:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
-    entry_nome = ctk.CTkEntry(campos_frame, width=300)
-    entry_nome.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+    def limpar_campos(self):
+        self.entry_nome.delete(0, ctk.END)
+        self.entry_descricao.delete(0, ctk.END)
+        self.entry_quantidade.delete(0, ctk.END)
+        self.entry_preco.delete(0, ctk.END)
+        self.entry_id_fornecedor.delete(0, ctk.END)
 
-    # Descrição
-    ctk.CTkLabel(campos_frame, text="Descrição:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    entry_descricao = ctk.CTkEntry(campos_frame, width=300)
-    entry_descricao.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+    def selecionar_produto(self, event):
+        # Implementação para selecionar produto da lista
+        pass
 
-    # Quantidade
-    ctk.CTkLabel(campos_frame, text="Quantidade:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
-    entry_quantidade = ctk.CTkEntry(campos_frame, width=100)
-    entry_quantidade.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+def abrir():
+    janela = ctk.CTkToplevel()
+    app = CrudProdutos(janela)
 
-    # Preço
-    ctk.CTkLabel(campos_frame, text="Preço (R$):").grid(row=3, column=0, padx=5, pady=5, sticky="e")
-    entry_preco = ctk.CTkEntry(campos_frame, width=100)
-    entry_preco.grid(row=3, column=1, padx=5, pady=5, sticky="w")
-
-    # Fornecedor
-    ctk.CTkLabel(campos_frame, text="ID Fornecedor:").grid(row=4, column=0, padx=5, pady=5, sticky="e")
-    entry_id_fornecedor = ctk.CTkEntry(campos_frame, width=100)
-    entry_id_fornecedor.grid(row=4, column=1, padx=5, pady=5, sticky="w")
-
-    # Botão de inserir
-    btn_inserir = ctk.CTkButton(form_frame, text="Inserir Produto", command=inserir_produto)
-    btn_inserir.pack(pady=10)
-
-    # Área de listagem
-    list_frame = ctk.CTkFrame(main_frame)
-    list_frame.pack(pady=10, padx=10, fill="both", expand=True)
-
-    ctk.CTkLabel(list_frame, text="Lista de Produtos", font=("Arial", 14, "bold")).pack(pady=5)
-
-    # Textbox com scrollbar para exibição
-    scrollbar = ctk.CTkScrollbar(list_frame)
-    scrollbar.pack(side="right", fill="y")
-
-    textbox = ctk.CTkTextbox(
-        list_frame, 
-        yscrollcommand=scrollbar.set,
-        font=("Courier New", 12),  # Fonte monoespaçada para alinhamento
-        wrap="none"
-    )
-    textbox.pack(pady=5, padx=5, fill="both", expand=True)
-
-    scrollbar.configure(command=textbox.yview)
-
-    # Carrega os produtos inicialmente
-    listar_produtos()
+if __name__ == "__main__":
+    root = ctk.CTk()
+    app = CrudProdutos(root)
+    root.mainloop()

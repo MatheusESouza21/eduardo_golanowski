@@ -2,6 +2,8 @@ import customtkinter as ctk
 from tkinter import messagebox
 from db_config import conectar
 
+
+
 # Configuração do tema
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")

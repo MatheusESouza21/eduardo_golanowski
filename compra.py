@@ -17,7 +17,7 @@ class SistemaCompras:
         self.carrinho = []
         self.total_compra = 0.0
         
-        self.criar_interface()
+        self.criar_interface(',')
     
     def criar_interface(self):
         # Frame principal
