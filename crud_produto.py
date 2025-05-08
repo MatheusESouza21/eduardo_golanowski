@@ -1,9 +1,11 @@
 import customtkinter as ctk
 from db_config import conectar
 from tkinter import messagebox
-
+from admin_crud import abrir_menu_admin
 class ProdutoCRUD:
-    def __init__(self):
+    def __init__(self, janela_principal=None):
+        self.janela_principal = janela_principal  # Armazena a referência à janela principal
+        
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Produto")
         self.janela.geometry("900x750")
@@ -12,6 +14,9 @@ class ProdutoCRUD:
         # Configuração do tema
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
+        
+        # Configurar comportamento ao fechar a janela
+        self.janela.protocol("WM_DELETE_WINDOW", self.fechar_janela)
         
         self.criar_interface()
         self.carregar_fornecedores()
@@ -36,20 +41,20 @@ class ProdutoCRUD:
         # Campos do formulário
         self.criar_campos_formulario()
         
-        # Frame de botões
-        self.btn_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
-        self.btn_frame.pack(pady=10)
+        # Frame de botões (formulário)
+        self.btn_form_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        self.btn_form_frame.pack(pady=10)
         
-        # Botões de ação
+        # Botões de ação do formulário
         ctk.CTkButton(
-            self.btn_frame, 
+            self.btn_form_frame, 
             text="Inserir", 
             command=self.inserir_produto,
             width=100
         ).pack(side="left", padx=5)
         
         ctk.CTkButton(
-            self.btn_frame, 
+            self.btn_form_frame, 
             text="Limpar", 
             command=self.limpar_campos,
             fg_color="gray",
@@ -81,12 +86,37 @@ class ProdutoCRUD:
         
         self.scrollbar.configure(command=self.textbox.yview)
         
+        # Frame de botões (listagem)
+        self.btn_list_frame = ctk.CTkFrame(self.list_frame, fg_color="transparent")
+        self.btn_list_frame.pack(pady=5, fill="x")
+        
         # Botão de atualizar
         ctk.CTkButton(
-            self.list_frame,
+            self.btn_list_frame,
             text="Atualizar Lista",
-            command=self.listar_produtos
-        ).pack(pady=5)
+            command=self.listar_produtos,
+            width=120
+        ).pack(side="left", padx=5)
+        
+        # Botão de voltar
+        ctk.CTkButton(
+            self.btn_list_frame,
+            text="⬅️ Voltar",
+            command=self.voltar,
+            fg_color="transparent",
+            border_width=1,
+            text_color=("gray10", "#DCE4EE"),
+            width=120
+        ).pack(side="right", padx=5)
+    
+    def voltar(self):
+        """Volta para a janela principal"""
+        self.janela.destroy()
+        abrir_menu_admin()
+    
+    def fechar_janela(self):
+        """Lida com o fechamento da janela"""
+        self.voltar()
     
     def criar_campos_formulario(self):
         campos_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
@@ -119,12 +149,12 @@ class ProdutoCRUD:
         try:
             conn = conectar()
             cursor = conn.cursor()
-            cursor.execute("SELECT id, nome FROM fornecedor ORDER BY nome")
+            cursor.execute("SELECT id_produto, nome FROM fornecedor ORDER BY nome")
             
             fornecedores = cursor.fetchall()
             valores = [f"{id_produto} - {nome}" for id_produto, nome in fornecedores]
             
-            self.campos["id_fornecedor"].configure(values=valores)
+            self.campos["id_produto"].configure(values=valores)
             
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao carregar fornecedores: {str(e)}")
@@ -134,11 +164,10 @@ class ProdutoCRUD:
     def validar_campos(self):
         # Verifica se todos os campos obrigatórios estão preenchidos
         if not all([
-            self.campos["id_produto"].get(),
             self.campos["nome"].get(),
             self.campos["quantidade"].get(),
             self.campos["preco"].get(),
-            self.campos["id_fornecedor"].get() != "Selecione..."
+            self.campos["id_produto"].get() != "Selecione..."
         ]):
             messagebox.showerror("Erro", "Preencha todos os campos obrigatórios!")
             return False
@@ -175,14 +204,14 @@ class ProdutoCRUD:
             return
             
         # Extrai ID do fornecedor (formato "ID - Nome")
-        fornecedor = self.campos["id_fornecedor"].get()
+        fornecedor = self.campos["id_produto"].get()
         id_fornecedor = int(fornecedor.split(" - ")[0])
         
         conn = conectar()
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                INSERT INTO produto (nome, descricao, quantidade, preco, id_fornecedor)
+                INSERT INTO produto (nome, descricao, quantidade, preco, id_produto)
                 VALUES (%s, %s, %s, %s, %s)
             """, (
                 self.campos["nome"].get(),
@@ -209,11 +238,11 @@ class ProdutoCRUD:
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                SELECT id_produto, nome, descricao, quantidade, 
-                       preco, nome as id_fornecedor
+                SELECT p.id_produto, p.nome, p.descricao, p.quantidade, 
+                       p.preco, f.nome as fornecedor
                 FROM produto p
-                LEFT JOIN fornecedor f ON id_fornecedor = id_produto
-                ORDER BY id_produto
+                LEFT JOIN fornecedor f ON p.id_fornecedor = f.id_produto
+                ORDER BY p.id_produto
             """)
             
             # Cabeçalho formatado
@@ -233,8 +262,8 @@ class ProdutoCRUD:
         finally:
             conn.close()
 
-def abrir():
-    app = ProdutoCRUD()
+def abrir(janela_principal=None):
+    app = ProdutoCRUD(janela_principal)
     app.janela.mainloop()
 
 if __name__ == "__main__":

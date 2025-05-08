@@ -68,23 +68,19 @@ class AdminMenu:
     
     def abrir_crud_usuario(self):
         self.janela.withdraw()  # Esconde a janela atual
-        crud_usuario.abrir()
-        self.janela.deiconify()  # Mostra novamente quando retornar
+        crud_usuario.abrir(self.janela)  # Passa a referência da janela principal
     
     def abrir_crud_fornecedor(self):
         self.janela.withdraw()
-        crud_fornecedor.abrir()
-        self.janela.deiconify()
+        crud_fornecedor.abrir(self.janela)
     
     def abrir_crud_produto(self):
         self.janela.withdraw()
-        crud_produto.abrir()
-        self.janela.deiconify()
+        crud_produto.abrir(self.janela)
     
     def abrir_crud_funcionario(self):
         self.janela.withdraw()
-        crud_funcionario.abrir()
-        self.janela.deiconify()
+        crud_funcionario.abrir(self.janela)
 
 def abrir_menu_admin():
     app = AdminMenu()

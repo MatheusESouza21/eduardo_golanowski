@@ -122,7 +122,7 @@ class CrudProdutos:
                 SELECT id_fornecedor, nome, descricao, quantidade, 
                        preco, nome as fornecedor
                 FROM produto p
-                LEFT JOIN fornecedor f ON id_fornecedor = id
+                LEFT JOIN fornecedor f ON id_fornecedor = id_produto
                 ORDER BY id_produto
             """)
             
