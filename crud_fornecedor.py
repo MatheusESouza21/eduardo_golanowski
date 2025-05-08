@@ -119,11 +119,11 @@ class CrudProdutos:
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                SELECT p.id, p.nome, p.descricao, p.quantidade, 
-                       p.preco, f.nome as fornecedor
+                SELECT id_fornecedor, nome, descricao, quantidade, 
+                       preco, nome as fornecedor
                 FROM produto p
-                LEFT JOIN fornecedor f ON p.id_fornecedor = f.id
-                ORDER BY p.id
+                LEFT JOIN fornecedor f ON id_fornecedor = id
+                ORDER BY id_produto
             """)
             
             # Cabeçalho
@@ -131,10 +131,10 @@ class CrudProdutos:
             self.textbox.insert(ctk.END, "-"*90 + "\n")
             
             # Dados
-            for produto in cursor.fetchall():
+            for id_produto in cursor.fetchall():
                 self.textbox.insert(ctk.END, 
-                    f"{produto[0]:<4}| {produto[1][:20]:<20}| {produto[2][:20]:<20}| "
-                    f"{produto[3]:<4}| R${produto[4]:<7.2f}| {produto[5] or 'N/D'}\n"
+                    f"{id_produto[0]:<4}| {id_produto[1][:20]:<20}| {id_produto[2][:20]:<20}| "
+                    f"{id_produto[3]:<4}| R${id_produto[4]:<7.2f}| {id_produto[5] or 'N/D'}\n"
                 )
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao carregar produtos: {str(e)}")
@@ -144,6 +144,7 @@ class CrudProdutos:
     def inserir_produto(self):
         # Validação
         if not all([
+            self.entry_id_produto.get(),
             self.entry_nome.get(),
             self.entry_quantidade.get().isdigit(),
             self.entry_preco.get().replace('.', '').isdigit(),

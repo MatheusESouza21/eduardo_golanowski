@@ -189,7 +189,7 @@ class FuncionarioCRUD:
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                SELECT id, nome, cargo, cpf, salario 
+                SELECT id_funcionario, nome, cargo, cpf, salario 
                 FROM funcionario
                 ORDER BY nome
             """)
@@ -199,11 +199,11 @@ class FuncionarioCRUD:
             self.textbox.insert(ctk.END, "-"*80 + "\n")
             
             # Dados
-            for funcionario in cursor.fetchall():
-                cpf_formatado = self.formatar_cpf(funcionario[3])
+            for id_funcionario in cursor.fetchall():
+                cpf_formatado = self.formatar_cpf(id_funcionario[3])
                 self.textbox.insert(ctk.END, 
-                    f"{funcionario[0]:<4}| {funcionario[1][:20]:<20}| {funcionario[2][:20]:<20}| "
-                    f"{cpf_formatado:<14}| R${funcionario[4]:<10.2f}\n"
+                    f"{id_funcionario[0]:<4}| {id_funcionario[1][:20]:<20}| {id_funcionario[2][:20]:<20}| "
+                    f"{cpf_formatado:<14}| R${id_funcionario[4]:<10.2f}\n"
                 )
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao carregar funcionários: {str(e)}")

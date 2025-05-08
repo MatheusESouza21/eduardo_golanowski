@@ -122,7 +122,7 @@ class ProdutoCRUD:
             cursor.execute("SELECT id, nome FROM fornecedor ORDER BY nome")
             
             fornecedores = cursor.fetchall()
-            valores = [f"{id_} - {nome}" for id_, nome in fornecedores]
+            valores = [f"{id_produto} - {nome}" for id_produto, nome in fornecedores]
             
             self.campos["id_fornecedor"].configure(values=valores)
             
@@ -134,6 +134,7 @@ class ProdutoCRUD:
     def validar_campos(self):
         # Verifica se todos os campos obrigatórios estão preenchidos
         if not all([
+            self.campos["id_produto"].get(),
             self.campos["nome"].get(),
             self.campos["quantidade"].get(),
             self.campos["preco"].get(),
@@ -208,11 +209,11 @@ class ProdutoCRUD:
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                SELECT p.id, p.nome, p.descricao, p.quantidade, 
-                       p.preco, f.nome as fornecedor
+                SELECT id_produto, nome, descricao, quantidade, 
+                       preco, nome as id_fornecedor
                 FROM produto p
-                LEFT JOIN fornecedor f ON p.id_fornecedor = f.id
-                ORDER BY p.id
+                LEFT JOIN fornecedor f ON id_fornecedor = id_produto
+                ORDER BY id_produto
             """)
             
             # Cabeçalho formatado
@@ -221,10 +222,10 @@ class ProdutoCRUD:
             self.textbox.insert(ctk.END, "-"*95 + "\n")
             
             # Dados formatados
-            for produto in cursor.fetchall():
+            for id_produto in cursor.fetchall():
                 self.textbox.insert(ctk.END, 
-                    f"{produto[0]:<4}| {produto[1][:20]:<20}| {produto[2][:20]:<20}| "
-                    f"{produto[3]:<5}| R${produto[4]:<8.2f}| {produto[5] or 'N/D'}\n"
+                    f"{id_produto[0]:<4}| {id_produto[1][:20]:<20}| {id_produto[2][:20]:<20}| "
+                    f"{id_produto[3]:<5}| R${id_produto[4]:<8.2f}| {id_produto[5] or 'N/D'}\n"
                 )
                 
         except Exception as e:
