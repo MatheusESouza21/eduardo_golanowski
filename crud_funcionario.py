@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from db_config import conectar
-import tkinter.messagebox as messagebox
+from CTkMessagebox import CTkMessagebox
 import re  # Para validação de CPF
 
 class FuncionarioCRUD:
@@ -14,10 +14,10 @@ class FuncionarioCRUD:
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
         
-        self.criar_interface()
+        self.abrir()
         self.listar_funcionarios()
     
-    def criar_interface(self):
+    def abrir(self):
         # Frame principal
         self.main_frame = ctk.CTkFrame(self.janela)
         self.main_frame.pack(pady=20, padx=20, fill="both", expand=True)
@@ -151,24 +151,26 @@ class FuncionarioCRUD:
             self.campos["cpf"].get(),
             self.campos["salario"].get()
         ]):
-            messagebox.showerror("Erro", "Preencha todos os campos obrigatórios!")
+            CTkMessagebox(title="Erro", message="Preencha todos os campos obrigatórios!", icon="cancel")
             return False
-        
+    
         # Valida CPF
         cpf = self.campos["cpf"].get()
         if not self.validar_cpf(cpf):
-            messagebox.showerror("Erro", "CPF inválido!")
+            CTkMessagebox(title="Erro", message="CPF inválido!", icon="cancel")
             return False
-        
+    
         # Valida salário
         try:
-            salario = float(self.campos["salario"].get().replace(",", "."))
+            salario_str = self.campos["salario"].get().replace(",", ".")
+            salario = float(salario_str)
             if salario <= 0:
-                raise ValueError
+                CTkMessagebox(title="Erro", message="Salário deve ser maior que zero!", icon="cancel")
+                return False
         except ValueError:
-            messagebox.showerror("Erro", "Salário deve ser um número positivo!")
+            CTkMessagebox(title="Erro", message="Salário deve ser um número válido!", icon="cancel")
             return False
-        
+    
         return True
     
     def formatar_cpf(self, cpf):
@@ -184,31 +186,39 @@ class FuncionarioCRUD:
     
     def listar_funcionarios(self):
         self.textbox.delete("1.0", ctk.END)
-        
-        conn = conectar()
-        cursor = conn.cursor()
+    
+        conn = None
+        cursor = None
         try:
+            conn = conectar()
+            cursor = conn.cursor()
+        
             cursor.execute("""
-                SELECT id, nome, cargo, cpf, salario 
+                SELECT id_funcionario, nome, cargo, cpf, salario 
                 FROM funcionario
-                ORDER BY nome
+                ORDER BY id_funcionario
             """)
-            
+        
             # Cabeçalho
             self.textbox.insert(ctk.END, "ID  | NOME                 | CARGO              | CPF           | SALÁRIO\n")
             self.textbox.insert(ctk.END, "-"*80 + "\n")
-            
+        
             # Dados
             for funcionario in cursor.fetchall():
                 cpf_formatado = self.formatar_cpf(funcionario[3])
                 self.textbox.insert(ctk.END, 
                     f"{funcionario[0]:<4}| {funcionario[1][:20]:<20}| {funcionario[2][:20]:<20}| "
                     f"{cpf_formatado:<14}| R${funcionario[4]:<10.2f}\n"
-                )
+            )
+            
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao carregar funcionários: {str(e)}")
+            CTkMessagebox(title="Erro", message="Falha ao carregar funcionários")
+        
         finally:
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
     
     def inserir_funcionario(self):
         if not self.validar_campos():
@@ -230,12 +240,12 @@ class FuncionarioCRUD:
                 float(self.campos["salario"].get().replace(",", "."))
             ))
             conn.commit()
-            messagebox.showinfo("Sucesso", "Funcionário cadastrado com sucesso!")
+            CTkMessagebox.showinfo("Sucesso", "Funcionário cadastrado com sucesso!")
             
             self.limpar_campos()
             self.listar_funcionarios()
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao inserir funcionário: {str(e)}")
+            CTkMessagebox(title="Erro", message="Falha ao inserir funcionário")
         finally:
             conn.close()
 
