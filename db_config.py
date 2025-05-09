@@ -4,9 +4,9 @@ def conectar():
     try:
         conn = mysql.connector.connect(
             host='127.0.0.1',
-            port=3307,  # sem parênteses e minúsculo
+            port=3306,  # sem parênteses e minúsculo
             user='root',  # adicionado parâmetro de usuário
-            password='root',
+            password='',
             database='matheuseduardodb_sa'
         )
         print("✅ Conexão estabelecida com sucesso!")

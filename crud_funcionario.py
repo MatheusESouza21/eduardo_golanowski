@@ -1,16 +1,17 @@
 import customtkinter as ctk
+from tkinter import ttk
 from db_config import conectar
 from CTkMessagebox import CTkMessagebox
 import re
-from tkinter import ttk  # Importação para o Treeview tradicional
 
 class FuncionarioCRUD:
     def __init__(self):
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Funcionário")
-        self.janela.geometry("1000x800")
+        self.janela.geometry("1000x700")
         self.janela.resizable(False, False)
         
+        # Configuração do tema
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
         
@@ -25,49 +26,99 @@ class FuncionarioCRUD:
         # Frame do formulário
         self.form_frame = ctk.CTkFrame(self.main_frame)
         self.form_frame.pack(pady=10, padx=10, fill="x")
-
+        
         # Título
-        ctk.CTkLabel(self.form_frame, text="Cadastro de Funcionários", font=("Arial", 14, "bold")).pack(pady=5)
-
+        ctk.CTkLabel(
+            self.form_frame, 
+            text="Cadastro de Funcionários", 
+            font=("Arial", 16, "bold")
+        ).pack(pady=10)
+        
         # Campos do formulário
         self.criar_campos_formulario()
         
         # Frame de botões
         self.btn_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
-        self.btn_frame.pack(pady=10)
+        self.btn_frame.pack(pady=15)
         
         # Botões de ação
-        ctk.CTkButton(self.btn_frame, text="Cadastrar", command=self.inserir_funcionario, width=120).pack(side="left", padx=5)
-        ctk.CTkButton(self.btn_frame, text="Atualizar", command=self.atualizar_funcionario, width=120, fg_color="#17a2b8").pack(side="left", padx=5)
-        ctk.CTkButton(self.btn_frame, text="Excluir", command=self.excluir_funcionario, width=120, fg_color="#dc3545").pack(side="left", padx=5)
-        ctk.CTkButton(self.btn_frame, text="Limpar", command=self.limpar_campos, width=120, fg_color="#6c757d").pack(side="left", padx=5)
+        ctk.CTkButton(
+            self.btn_frame, 
+            text="Cadastrar", 
+            command=self.inserir_funcionario,
+            width=120,
+            fg_color="#28a745",
+            hover_color="#218838"
+        ).pack(side="left", padx=5)
         
-        # Área de listagem com Treeview
+        ctk.CTkButton(
+            self.btn_frame, 
+            text="Atualizar", 
+            command=self.atualizar_funcionario,
+            width=120,
+            fg_color="#17a2b8",
+            hover_color="#138496"
+        ).pack(side="left", padx=5)
+        
+        ctk.CTkButton(
+            self.btn_frame, 
+            text="Excluir", 
+            command=self.excluir_funcionario,
+            width=120,
+            fg_color="#dc3545",
+            hover_color="#c82333"
+        ).pack(side="left", padx=5)
+        
+        ctk.CTkButton(
+            self.btn_frame, 
+            text="Limpar", 
+            command=self.limpar_campos,
+            width=120,
+            fg_color="#6c757d",
+            hover_color="#5a6268"
+        ).pack(side="left", padx=5)
+        
+        # Área de listagem
         self.list_frame = ctk.CTkFrame(self.main_frame)
         self.list_frame.pack(pady=10, padx=10, fill="both", expand=True)
         
-        ctk.CTkLabel(self.list_frame, text="Lista de Funcionários", font=("Arial", 14, "bold")).pack(pady=5)
-
-        # Treeview do ttk
-        self.tree = ttk.Treeview(self.list_frame, columns=("ID", "Nome", "Cargo", "CPF", "Salário"), show="headings", height=20)
+        ctk.CTkLabel(
+            self.list_frame, 
+            text="Lista de Funcionários", 
+            font=("Arial", 14, "bold")
+        ).pack(pady=5)
+        
+        # Treeview para exibição
+        self.tree = ttk.Treeview(
+            self.list_frame,
+            columns=("ID", "Nome", "Cargo", "CPF", "Salário"),
+            show="headings",
+            height=15,
+            selectmode="browse"
+        )
         
         # Configurar colunas
         colunas = [
-            ("ID", 50),
-            ("Nome", 200),
-            ("Cargo", 150),
-            ("CPF", 150),
-            ("Salário", 100)
+            ("ID", 50, "center"),
+            ("Nome", 250, "w"),
+            ("Cargo", 150, "w"),
+            ("CPF", 150, "center"),
+            ("Salário", 150, "center")
         ]
         
-        for col, width in colunas:
+        for col, width, anchor in colunas:
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=width, anchor="center")
+            self.tree.column(col, width=width, anchor=anchor)
         
         # Scrollbar
-        scrollbar = ttk.Scrollbar(self.list_frame, orient="vertical", command=self.tree.yview)
+        scrollbar = ttk.Scrollbar(
+            self.list_frame, 
+            orient="vertical", 
+            command=self.tree.yview
+        )
         self.tree.configure(yscrollcommand=scrollbar.set)
         
+        # Layout
         self.tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
@@ -75,96 +126,206 @@ class FuncionarioCRUD:
         self.tree.bind("<<TreeviewSelect>>", self.carregar_dados_selecionados)
         
         # Estilização do Treeview
+        self.configurar_estilo_treeview()
+        
+        # Botão de atualizar lista
+        ctk.CTkButton(
+            self.list_frame,
+            text="Atualizar Lista",
+            command=self.listar_funcionarios,
+            width=120
+        ).pack(pady=10)
+    
+    def configurar_estilo_treeview(self):
         style = ttk.Style()
         style.theme_use("default")
-        style.configure("Treeview", 
-                       background="#2a2d2e",
-                       foreground="white",
-                       rowheight=25,
-                       fieldbackground="#2a2d2e",
-                       bordercolor="#343638",
-                       borderwidth=0)
-        style.map('Treeview', background=[('selected', '#22559b')])
-        style.configure("Treeview.Heading",
-                       background="#565b5e",
-                       foreground="white",
-                       relief="flat")
-        style.map("Treeview.Heading",
-                 background=[('active', '#3484F0')])
         
-        # Botão de atualizar
-        ctk.CTkButton(self.list_frame, text="Atualizar Lista", command=self.listar_funcionarios).pack(pady=5)
+        style.configure("Treeview",
+            background="#2b2b2b",
+            foreground="white",
+            rowheight=25,
+            fieldbackground="#2b2b2b",
+            bordercolor="#343638",
+            borderwidth=0
+        )
+        style.map('Treeview', background=[('selected', '#3b8ed0')])
+        
+        style.configure("Treeview.Heading",
+            background="#565b5e",
+            foreground="white",
+            relief="flat",
+            font=('Arial', 10, 'bold')
+        )
+        style.map("Treeview.Heading",
+            background=[('active', '#3484F0')]
+        )
+    
+    def criar_campos_formulario(self):
+        # Frame para os campos
+        campos_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        campos_frame.pack(fill="x", padx=10, pady=5)
+        
+        # Dicionário para armazenar os campos
+        self.campos = {}
+        
+        # Configuração dos campos
+        campos_config = [
+            ("nome", "Nome Completo:", 300),
+            ("cargo", "Cargo:", 300),
+            ("cpf", "CPF:", 150, "000.000.000-00"),
+            ("salario", "Salário (R$):", 150, "0,00")
+        ]
+        
+        # Criar campos dinamicamente
+        for idx, (nome, label, largura, *placeholder) in enumerate(campos_config):
+            # Label
+            ctk.CTkLabel(
+                campos_frame, 
+                text=label,
+                font=("Arial", 12)
+            ).grid(row=idx, column=0, padx=5, pady=5, sticky="e")
+            
+            # Entry
+            placeholder_text = placeholder[0] if placeholder else ""
+            self.campos[nome] = ctk.CTkEntry(
+                campos_frame,
+                width=largura,
+                placeholder_text=placeholder_text,
+                font=("Arial", 12)
+            )
+            
+            # Posicionamento
+            self.campos[nome].grid(row=idx, column=1, padx=5, pady=5, sticky="w")
+            
+            # Bind para formatação automática do CPF
+            if nome == "cpf":
+                self.campos[nome].bind("<KeyRelease>", self.formatar_cpf_digitacao)
+            elif nome == "salario":
+                self.campos[nome].bind("<KeyRelease>", self.formatar_salario_digitacao)
+    
+    def formatar_cpf_digitacao(self, event):
+        # Pega o texto atual sem formatação
+        texto = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
+        
+        # Aplica a máscara
+        formatado = ""
+        if len(texto) > 0:
+            formatado = texto[:3]
+        if len(texto) > 3:
+            formatado += "." + texto[3:6]
+        if len(texto) > 6:
+            formatado += "." + texto[6:9]
+        if len(texto) > 9:
+            formatado += "-" + texto[9:11]
+        
+        # Atualiza o campo
+        self.campos["cpf"].delete(0, "end")
+        self.campos["cpf"].insert(0, formatado)
+    
+    def formatar_salario_digitacao(self, event):
+        texto = re.sub(r'[^0-9]', '', self.campos["salario"].get())
+        
+        if texto:
+            try:
+                # Converte para float e formata com 2 casas decimais
+                valor = float(texto) / 100
+                formatado = f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                self.campos["salario"].delete(0, "end")
+                self.campos["salario"].insert(0, formatado)
+            except:
+                pass
+    
+    def validar_cpf(self, cpf):
+        cpf = re.sub(r'[^0-9]', '', cpf)
+        
+        # Verifica se tem 11 dígitos
+        if len(cpf) != 11:
+            return False
+        
+        # Verifica se todos os dígitos são iguais
+        if cpf == cpf[0] * 11:
+            return False
+        
+        # Cálculo do primeiro dígito verificador
+        soma = 0
+        for i in range(9):
+            soma += int(cpf[i]) * (10 - i)
+        resto = 11 - (soma % 11)
+        digito1 = resto if resto < 10 else 0
+        
+        # Cálculo do segundo dígito verificador
+        soma = 0
+        for i in range(10):
+            soma += int(cpf[i]) * (11 - i)
+        resto = 11 - (soma % 11)
+        digito2 = resto if resto < 10 else 0
+        
+        # Verifica se os dígitos calculados conferem com os informados
+        return int(cpf[9]) == digito1 and int(cpf[10]) == digito2
+    
+    def validar_campos(self):
+        # Verifica campos vazios
+        if not all(self.campos[campo].get() for campo in self.campos):
+            CTkMessagebox(
+                title="Erro", 
+                message="Preencha todos os campos!", 
+                icon="cancel"
+            )
+            return False
+        
+        # Valida CPF
+        cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
+        if not self.validar_cpf(cpf):
+            CTkMessagebox(
+                title="Erro", 
+                message="CPF inválido!", 
+                icon="cancel"
+            )
+            return False
+        
+        # Valida salário
+        try:
+            salario = float(
+                self.campos["salario"].get()
+                .replace(".", "")
+                .replace(",", ".")
+            )
+            if salario <= 0:
+                raise ValueError
+        except ValueError:
+            CTkMessagebox(
+                title="Erro", 
+                message="Salário deve ser um valor positivo!", 
+                icon="cancel"
+            )
+            return False
+        
+        return True
+    
+    def limpar_campos(self):
+        for campo in self.campos.values():
+            campo.delete(0, "end")
     
     def carregar_dados_selecionados(self, event):
         selected = self.tree.selection()
         if selected:
             values = self.tree.item(selected, "values")
             self.limpar_campos()
+            
+            # Preenche os campos com os dados selecionados
             self.campos["nome"].insert(0, values[1])
             self.campos["cargo"].insert(0, values[2])
-            self.campos["cpf"].insert(0, values[3])
-            self.campos["salario"].insert(0, values[4].replace("R$", "").strip())
-    
-    def criar_campos_formulario(self):
-        campos_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
-        campos_frame.pack(pady=10, padx=10, fill="x")
-        
-        self.campos = {}
-        campos_config = [
-            ("nome", "Nome Completo:", 300),
-            ("cargo", "Cargo:", 300),
-            ("cpf", "CPF:", 150, "000.000.000-00"),
-            ("salario", "Salário (R$):", 150, "0.00")
-        ]
-        
-        for idx, (nome, label, largura, *placeholder) in enumerate(campos_config):
-            ctk.CTkLabel(campos_frame, text=label).grid(row=idx, column=0, padx=5, pady=5, sticky="e")
-            placeholder_text = placeholder[0] if placeholder else ""
-            self.campos[nome] = ctk.CTkEntry(campos_frame, width=largura, placeholder_text=placeholder_text)
-            self.campos[nome].grid(row=idx, column=1, padx=5, pady=5, sticky="w")
-    
-    def validar_cpf(self, cpf):
-        cpf = re.sub(r'[^0-9]', '', cpf)
-        if len(cpf) != 11 or cpf == cpf[0] * 11:
-            return False
-        
-        # Cálculo dos dígitos verificadores
-        for i in range(9, 11):
-            soma = sum(int(cpf[num]) * (i+1-num) for num in range(0, i))
-            digito = 11 - (soma % 11)
-            if int(cpf[i]) != (0 if digito > 9 else digito):
-                return False
-        return True
-    
-    def validar_campos(self):
-        if not all([self.campos["nome"].get(), self.campos["cargo"].get(), 
-                   self.campos["cpf"].get(), self.campos["salario"].get()]):
-            CTkMessagebox(title="Erro", message="Preencha todos os campos!", icon="cancel")
-            return False
-        
-        if not self.validar_cpf(self.campos["cpf"].get()):
-            CTkMessagebox(title="Erro", message="CPF inválido!", icon="cancel")
-            return False
-        
-        try:
-            salario = float(self.campos["salario"].get().replace(",", "."))
-            if salario <= 0:
-                raise ValueError
-        except ValueError:
-            CTkMessagebox(title="Erro", message="Salário deve ser positivo!", icon="cancel")
-            return False
-        
-        return True
-    
-    def formatar_cpf(self, cpf):
-        cpf = re.sub(r'[^0-9]', '', cpf)
-        return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
-    
-    def limpar_campos(self):
-        for campo in self.campos.values():
-            campo.delete(0, "end")
+            
+            # Formata o CPF para exibição
+            cpf = values[3]
+            self.campos["cpf"].insert(0, cpf)
+            
+            # Remove "R$ " e formata o salário
+            salario = values[4].replace("R$ ", "").replace(".", "").replace(",", ".")
+            self.campos["salario"].insert(0, salario)
     
     def listar_funcionarios(self):
+        # Limpa a treeview
         for item in self.tree.get_children():
             self.tree.delete(item)
         
@@ -173,122 +334,212 @@ class FuncionarioCRUD:
         try:
             conn = conectar()
             cursor = conn.cursor()
-            cursor.execute("SELECT id_funcionario, nome, cargo, cpf, salario FROM funcionario ORDER BY nome")
+            
+            cursor.execute("""
+                SELECT id_funcionario, nome, cargo, cpf, salario 
+                FROM funcionario 
+                ORDER BY nome
+            """)
             
             for funcionario in cursor.fetchall():
+                # Formata os valores para exibição
+                cpf_formatado = f"{funcionario[3][:3]}.{funcionario[3][3:6]}.{funcionario[3][6:9]}-{funcionario[3][9:]}"
+                salario_formatado = f"R$ {funcionario[4]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                
                 self.tree.insert("", "end", values=(
-                    funcionario[0],
-                    funcionario[1],
-                    funcionario[2],
-                    self.formatar_cpf(funcionario[3]),
-                    f"R$ {funcionario[4]:.2f}"
+                    funcionario[0],  # ID
+                    funcionario[1],  # Nome
+                    funcionario[2],  # Cargo
+                    cpf_formatado,   # CPF formatado
+                    salario_formatado  # Salário formatado
                 ))
+                
         except Exception as e:
-            CTkMessagebox(title="Erro", message=f"Falha ao carregar:\n{str(e)}", icon="cancel")
+            CTkMessagebox(
+                title="Erro", 
+                message=f"Falha ao carregar funcionários:\n{str(e)}", 
+                icon="cancel"
+            )
         finally:
-            if cursor: cursor.close()
-            if conn: conn.close()
-    
-    def get_selected_id(self):
-        selected = self.tree.selection()
-        return self.tree.item(selected, "values")[0] if selected else None
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
     
     def inserir_funcionario(self):
         if not self.validar_campos():
             return
-            
+        
         conn = None
         cursor = None
         try:
             conn = conectar()
             cursor = conn.cursor()
-            cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
             
+            # Prepara os dados
+            cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
+            salario = float(
+                self.campos["salario"].get()
+                .replace(".", "")
+                .replace(",", ".")
+            )
+            
+            # Executa a inserção
             cursor.execute("""
                 INSERT INTO funcionario (nome, cargo, cpf, salario)
                 VALUES (%s, %s, %s, %s)
             """, (
-                self.campos["nome"].get(),
-                self.campos["cargo"].get(),
+                self.campos["nome"].get().strip(),
+                self.campos["cargo"].get().strip(),
                 cpf,
-                float(self.campos["salario"].get().replace(",", "."))
+                salario
             ))
+            
             conn.commit()
-            CTkMessagebox(title="Sucesso", message="Funcionário cadastrado!", icon="check")
+            
+            CTkMessagebox(
+                title="Sucesso", 
+                message="Funcionário cadastrado com sucesso!", 
+                icon="check"
+            )
+            
             self.limpar_campos()
             self.listar_funcionarios()
+            
         except Exception as e:
-            CTkMessagebox(title="Erro", message=f"Falha ao inserir:\n{str(e)}", icon="cancel")
+            CTkMessagebox(
+                title="Erro", 
+                message=f"Falha ao cadastrar funcionário:\n{str(e)}", 
+                icon="cancel"
+            )
         finally:
-            if cursor: cursor.close()
-            if conn: conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
     
     def atualizar_funcionario(self):
-        funcionario_id = self.get_selected_id()
-        if not funcionario_id:
-            CTkMessagebox(title="Aviso", message="Selecione um funcionário!", icon="warning")
+        selected = self.tree.selection()
+        if not selected:
+            CTkMessagebox(
+                title="Aviso", 
+                message="Selecione um funcionário para atualizar!", 
+                icon="warning"
+            )
             return
             
         if not self.validar_campos():
             return
-            
+        
         conn = None
         cursor = None
         try:
             conn = conectar()
             cursor = conn.cursor()
-            cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
             
+            # Obtém o ID do funcionário selecionado
+            funcionario_id = self.tree.item(selected, "values")[0]
+            
+            # Prepara os dados
+            cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
+            salario = float(
+                self.campos["salario"].get()
+                .replace(".", "")
+                .replace(",", ".")
+            )
+            
+            # Executa a atualização
             cursor.execute("""
                 UPDATE funcionario 
-                SET nome=%s, cargo=%s, cpf=%s, salario=%s
-                WHERE id_funcionario=%s
+                SET nome = %s, cargo = %s, cpf = %s, salario = %s
+                WHERE id_funcionario = %s
             """, (
-                self.campos["nome"].get(),
-                self.campos["cargo"].get(),
+                self.campos["nome"].get().strip(),
+                self.campos["cargo"].get().strip(),
                 cpf,
-                float(self.campos["salario"].get().replace(",", ".")),
+                salario,
                 funcionario_id
             ))
+            
             conn.commit()
-            CTkMessagebox(title="Sucesso", message="Dados atualizados!", icon="check")
+            
+            CTkMessagebox(
+                title="Sucesso", 
+                message="Dados do funcionário atualizados com sucesso!", 
+                icon="check"
+            )
+            
             self.listar_funcionarios()
+            
         except Exception as e:
-            CTkMessagebox(title="Erro", message=f"Falha ao atualizar:\n{str(e)}", icon="cancel")
+            CTkMessagebox(
+                title="Erro", 
+                message=f"Falha ao atualizar funcionário:\n{str(e)}", 
+                icon="cancel"
+            )
         finally:
-            if cursor: cursor.close()
-            if conn: conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
     
     def excluir_funcionario(self):
-        funcionario_id = self.get_selected_id()
-        if not funcionario_id:
-            CTkMessagebox(title="Aviso", message="Selecione um funcionário!", icon="warning")
+        selected = self.tree.selection()
+        if not selected:
+            CTkMessagebox(
+                title="Aviso", 
+                message="Selecione um funcionário para excluir!", 
+                icon="warning"
+            )
             return
-            
-        confirm = CTkMessagebox(
-            title="Confirmação",
-            message=f"Excluir funcionário ID {funcionario_id}?",
-            icon="question",
-            option_1="Cancelar",
+        
+        # Confirmação da exclusão
+        confirmacao = CTkMessagebox(
+            title="Confirmação", 
+            message=f"Tem certeza que deseja excluir o funcionário {self.tree.item(selected, 'values')[1]}?", 
+            icon="question", 
+            option_1="Cancelar", 
             option_2="Excluir"
         )
         
-        if confirm.get() == "Excluir":
+        if confirmacao.get() == "Excluir":
             conn = None
             cursor = None
             try:
                 conn = conectar()
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM funcionario WHERE id_funcionario = %s", (funcionario_id,))
+                
+                # Obtém o ID do funcionário selecionado
+                funcionario_id = self.tree.item(selected, "values")[0]
+                
+                # Executa a exclusão
+                cursor.execute("""
+                    DELETE FROM funcionario 
+                    WHERE id_funcionario = %s
+                """, (funcionario_id,))
+                
                 conn.commit()
-                CTkMessagebox(title="Sucesso", message="Funcionário excluído!", icon="check")
+                
+                CTkMessagebox(
+                    title="Sucesso", 
+                    message="Funcionário excluído com sucesso!", 
+                    icon="check"
+                )
+                
                 self.limpar_campos()
                 self.listar_funcionarios()
+                
             except Exception as e:
-                CTkMessagebox(title="Erro", message=f"Falha ao excluir:\n{str(e)}", icon="cancel")
+                CTkMessagebox(
+                    title="Erro", 
+                    message=f"Falha ao excluir funcionário:\n{str(e)}", 
+                    icon="cancel"
+                )
             finally:
-                if cursor: cursor.close()
-                if conn: conn.close()
+                if cursor:
+                    cursor.close()
+                if conn:
+                    conn.close()
 
 def abrir():
     app = FuncionarioCRUD()
