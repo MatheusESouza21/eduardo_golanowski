@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from db_config import conectar
 from CTkMessagebox import CTkMessagebox
 import re
@@ -325,222 +325,51 @@ class FuncionarioCRUD:
             self.campos["salario"].insert(0, salario)
     
     def listar_funcionarios(self):
-        # Limpa a treeview
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        
-        conn = None
-        cursor = None
-        try:
-            conn = conectar()
-            cursor = conn.cursor()
-            
+    # Verifica se a treeview existe
+        if not hasattr(self, 'tree'):
+            messagebox.showerror("Erro", "Treeview não foi criada corretamente!")
+            return
+
+    # Limpa a treeview
+        self.tree.delete(*self.tree.get_children())
+
+    try:
+        conn = conectar()
+        with conn.cursor() as cursor:
+            # Consulta SQL
             cursor.execute("""
                 SELECT id_funcionario, nome, cargo, cpf, salario 
-                FROM funcionario 
+                FROM funcionario
                 ORDER BY nome
             """)
-            
-            for funcionario in cursor.fetchall():
-                # Formata os valores para exibição
-                cpf_formatado = f"{funcionario[3][:3]}.{funcionario[3][3:6]}.{funcionario[3][6:9]}-{funcionario[3][9:]}"
-                salario_formatado = f"R$ {funcionario[4]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                
-                self.tree.insert("", "end", values=(
-                    funcionario[0],  # ID
-                    funcionario[1],  # Nome
-                    funcionario[2],  # Cargo
-                    cpf_formatado,   # CPF formatado
-                    salario_formatado  # Salário formatado
-                ))
-                
-        except Exception as e:
-            CTkMessagebox(
-                title="Erro", 
-                message=f"Falha ao carregar funcionários:\n{str(e)}", 
-                icon="cancel"
-            )
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-    
-    def inserir_funcionario(self):
-        if not self.validar_campos():
-            return
-        
-        conn = None
-        cursor = None
-        try:
-            conn = conectar()
-            cursor = conn.cursor()
-            
-            # Prepara os dados
-            cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
-            salario = float(
-                self.campos["salario"].get()
-                .replace(".", "")
-                .replace(",", ".")
-            )
-            
-            # Executa a inserção
-            cursor.execute("""
-                INSERT INTO funcionario (nome, cargo, cpf, salario)
-                VALUES (%s, %s, %s, %s)
-            """, (
-                self.campos["nome"].get().strip(),
-                self.campos["cargo"].get().strip(),
-                cpf,
-                salario
-            ))
-            
-            conn.commit()
-            
-            CTkMessagebox(
-                title="Sucesso", 
-                message="Funcionário cadastrado com sucesso!", 
-                icon="check"
-            )
-            
-            self.limpar_campos()
-            self.listar_funcionarios()
-            
-        except Exception as e:
-            CTkMessagebox(
-                title="Erro", 
-                message=f"Falha ao cadastrar funcionário:\n{str(e)}", 
-                icon="cancel"
-            )
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-    
-    def atualizar_funcionario(self):
-        selected = self.tree.selection()
-        if not selected:
-            CTkMessagebox(
-                title="Aviso", 
-                message="Selecione um funcionário para atualizar!", 
-                icon="warning"
-            )
-            return
-            
-        if not self.validar_campos():
-            return
-        
-        conn = None
-        cursor = None
-        try:
-            conn = conectar()
-            cursor = conn.cursor()
-            
-            # Obtém o ID do funcionário selecionado
-            funcionario_id = self.tree.item(selected, "values")[0]
-            
-            # Prepara os dados
-            cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
-            salario = float(
-                self.campos["salario"].get()
-                .replace(".", "")
-                .replace(",", ".")
-            )
-            
-            # Executa a atualização
-            cursor.execute("""
-                UPDATE funcionario 
-                SET nome = %s, cargo = %s, cpf = %s, salario = %s
-                WHERE id_funcionario = %s
-            """, (
-                self.campos["nome"].get().strip(),
-                self.campos["cargo"].get().strip(),
-                cpf,
-                salario,
-                funcionario_id
-            ))
-            
-            conn.commit()
-            
-            CTkMessagebox(
-                title="Sucesso", 
-                message="Dados do funcionário atualizados com sucesso!", 
-                icon="check"
-            )
-            
-            self.listar_funcionarios()
-            
-        except Exception as e:
-            CTkMessagebox(
-                title="Erro", 
-                message=f"Falha ao atualizar funcionário:\n{str(e)}", 
-                icon="cancel"
-            )
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-    
-    def excluir_funcionario(self):
-        selected = self.tree.selection()
-        if not selected:
-            CTkMessagebox(
-                title="Aviso", 
-                message="Selecione um funcionário para excluir!", 
-                icon="warning"
-            )
-            return
-        
-        # Confirmação da exclusão
-        confirmacao = CTkMessagebox(
-            title="Confirmação", 
-            message=f"Tem certeza que deseja excluir o funcionário {self.tree.item(selected, 'values')[1]}?", 
-            icon="question", 
-            option_1="Cancelar", 
-            option_2="Excluir"
-        )
-        
-        if confirmacao.get() == "Excluir":
-            conn = None
-            cursor = None
-            try:
-                conn = conectar()
-                cursor = conn.cursor()
-                
-                # Obtém o ID do funcionário selecionado
-                funcionario_id = self.tree.item(selected, "values")[0]
-                
-                # Executa a exclusão
-                cursor.execute("""
-                    DELETE FROM funcionario 
-                    WHERE id_funcionario = %s
-                """, (funcionario_id,))
-                
-                conn.commit()
-                
-                CTkMessagebox(
-                    title="Sucesso", 
-                    message="Funcionário excluído com sucesso!", 
-                    icon="check"
-                )
-                
-                self.limpar_campos()
-                self.listar_funcionarios()
-                
-            except Exception as e:
-                CTkMessagebox(
-                    title="Erro", 
-                    message=f"Falha ao excluir funcionário:\n{str(e)}", 
-                    icon="cancel"
-                )
-            finally:
-                if cursor:
-                    cursor.close()
-                if conn:
-                    conn.close()
+            funcionarios = cursor.fetchall()
 
+        # Se não houver funcionários
+        if not funcionarios:
+            CTkMessagebox(
+                title="Informação",
+                message="Nenhum funcionário cadastrado!",
+                icon="info"
+            )
+            
+
+        # Adiciona os dados na treeview
+        for funcionario in funcionarios:
+            id_funcionario, nome, cargo, cpf, salario = funcionario
+            cpf_formatado = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:11]}" if cpf else ""
+            salario_formatado = f"R$ {float(salario):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            
+
+    except Exception as e:
+        CTkMessagebox(
+            title="Erro",
+            message=f"Falha ao listar funcionários:\n{str(e)}",
+            icon="cancel"
+        )
+    finally:
+        if conn:
+            conn.close()
+    
 def abrir():
     app = FuncionarioCRUD()
     app.janela.mainloop()

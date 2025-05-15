@@ -1,24 +1,24 @@
 import customtkinter as ctk
 from db_config import conectar
 from tkinter import messagebox
-from tkinter import ttk
+from tkinter import ttk 
+
 
 class ProdutoCRUD:
-    def __init__(self):
+    def __init__(self, janela_principal=None):
+        self.janela_principal = janela_principal  # Armazena a referência à janela principal
+        
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Produto")
-        self.janela.geometry("1000x750")
+        self.janela.geometry("900x750")
         self.janela.resizable(False, False)
         
         # Configuração do tema
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
         
-        # Variável para controle da ordenação
-        self.ordenacao = {
-            'coluna': 'p.id',
-            'direcao': 'ASC'
-        }
+        # Configurar comportamento ao fechar a janela
+        self.janela.protocol("WM_DELETE_WINDOW", self.fechar_janela)
         
         self.criar_interface()
         self.carregar_fornecedores()
@@ -37,51 +37,31 @@ class ProdutoCRUD:
         ctk.CTkLabel(
             self.form_frame, 
             text="Cadastro de Produtos", 
-            font=("Arial", 16, "bold")
-        ).pack(pady=10)
+            font=("Arial", 14, "bold")
+        ).pack(pady=5)
         
         # Campos do formulário
         self.criar_campos_formulario()
         
-        # Frame de botões
-        self.btn_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
-        self.btn_frame.pack(pady=15)
+        # Frame de botões (formulário)
+        self.btn_form_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        self.btn_form_frame.pack(pady=10)
         
-        # Botões de ação
+        # Botões de ação do formulário
         ctk.CTkButton(
-            self.btn_frame, 
-            text="Cadastrar", 
+            self.btn_form_frame, 
+            text="Inserir", 
             command=self.inserir_produto,
-            width=120,
-            fg_color="#28a745",
-            hover_color="#218838"
+            width=100
         ).pack(side="left", padx=5)
         
         ctk.CTkButton(
-            self.btn_frame, 
-            text="Atualizar", 
-            command=self.atualizar_produto,
-            width=120,
-            fg_color="#17a2b8",
-            hover_color="#138496"
-        ).pack(side="left", padx=5)
-        
-        ctk.CTkButton(
-            self.btn_frame, 
-            text="Excluir", 
-            command=self.excluir_produto,
-            width=120,
-            fg_color="#dc3545",
-            hover_color="#c82333"
-        ).pack(side="left", padx=5)
-        
-        ctk.CTkButton(
-            self.btn_frame, 
+            self.btn_form_frame, 
             text="Limpar", 
             command=self.limpar_campos,
-            width=120,
-            fg_color="#6c757d",
-            hover_color="#5a6268"
+            fg_color="gray",
+            hover_color="darkgray",
+            width=100
         ).pack(side="left", padx=5)
         
         # Área de listagem
@@ -94,169 +74,111 @@ class ProdutoCRUD:
             font=("Arial", 14, "bold")
         ).pack(pady=5)
         
-        # Treeview para exibição
-        self.tree = ttk.Treeview(
-            self.list_frame,
-            columns=("ID", "Nome", "Descrição", "Quantidade", "Preço", "Fornecedor"),
-            show="headings",
-            height=15,
-            selectmode="browse"
-        )
+        # Textbox com scrollbar
+        self.scrollbar = ctk.CTkScrollbar(self.list_frame)
+        self.scrollbar.pack(side="right", fill="y")
         
-        # Configurar colunas com bind para ordenação
-        colunas = [
-            ("ID", 50, "center", "p.id"),
-            ("Nome", 200, "w", "p.nome"),
-            ("Descrição", 200, "w", "p.descricao"),
-            ("Quantidade", 80, "center", "p.quantidade"),
-            ("Preço", 100, "center", "p.preco"),
-            ("Fornecedor", 150, "w", "f.nome")
-        ]
-        
-        for col, width, anchor, coluna_db in colunas:
-            self.tree.heading(col, text=col, 
-                            command=lambda c=coluna_db: self.ordenar_por_coluna(c))
-            self.tree.column(col, width=width, anchor=anchor)
-        
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(
+        self.textbox = ctk.CTkTextbox(
             self.list_frame, 
-            orient="vertical", 
-            command=self.tree.yview
+            yscrollcommand=self.scrollbar.set,
+            font=("Courier New", 12),
+            wrap="none"
         )
-        self.tree.configure(yscrollcommand=scrollbar.set)
+        self.textbox.pack(pady=5, padx=5, fill="both", expand=True)
         
-        # Layout
-        self.tree.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        self.scrollbar.configure(command=self.textbox.yview)
         
-        # Configurar seleção
-        self.tree.bind("<<TreeviewSelect>>", self.carregar_dados_selecionados)
+        # Frame de botões (listagem)
+        self.btn_list_frame = ctk.CTkFrame(self.list_frame, fg_color="transparent")
+        self.btn_list_frame.pack(pady=5, fill="x")
         
-        # Estilização do Treeview
-        self.configurar_estilo_treeview()
-        
-        # Botão de atualizar lista
+        # Botão de atualizar
         ctk.CTkButton(
-            self.list_frame,
+            self.btn_list_frame,
             text="Atualizar Lista",
             command=self.listar_produtos,
             width=120
-        ).pack(pady=10)
+        ).pack(side="left", padx=5)
+        
+        # Botão de voltar
+        ctk.CTkButton(
+            self.btn_list_frame,
+            text="⬅️ Voltar",
+            command=self.voltar,
+            fg_color="transparent",
+            border_width=1,
+            text_color=("gray10", "#DCE4EE"),
+            width=120
+        ).pack(side="right", padx=5)
     
-    def configurar_estilo_treeview(self):
-        style = ttk.Style()
-        style.theme_use("default")
-        
-        style.configure("Treeview",
-            background="#2b2b2b",
-            foreground="white",
-            rowheight=25,
-            fieldbackground="#2b2b2b",
-            bordercolor="#343638",
-            borderwidth=0
-        )
-        style.map('Treeview', background=[('selected', '#3b8ed0')])
-        
-        style.configure("Treeview.Heading",
-            background="#565b5e",
-            foreground="white",
-            relief="flat",
-            font=('Arial', 10, 'bold')
-        )
-        style.map("Treeview.Heading",
-            background=[('active', '#3484F0')],
-            relief=[('pressed', 'sunken'), ('!pressed', 'raised')]
-        )
+    def voltar(self):
+        """Volta para a janela principal"""
+        self.janela.destroy()
+        if self.janela_principal:
+            self.janela_principal.deiconify()
+    
+    def fechar_janela(self):
+        """Lida com o fechamento da janela"""
+        self.voltar()
     
     def criar_campos_formulario(self):
-        # Frame para os campos
         campos_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
-        campos_frame.pack(fill="x", padx=10, pady=5)
+        campos_frame.pack(pady=10, padx=10, fill="x")
         
         # Dicionário para armazenar os campos
         self.campos = {}
         
         # Configuração dos campos
         campos_config = [
-            ("id_produto", "ID Produto:", 100),
             ("nome", "Nome:", 300),
             ("descricao", "Descrição:", 300),
             ("quantidade", "Quantidade:", 100),
-            ("preco", "Preço (R$):", 150),
-            ("id_fornecedor", "Fornecedor:", 250)
+            ("preco", "Preço (R$):", 100),
+            ("id_fornecedor", "Fornecedor:", 200)
         ]
         
-        # Criar campos dinamicamente
         for idx, (nome, label, largura) in enumerate(campos_config):
-            # Label
-            ctk.CTkLabel(
-                campos_frame, 
-                text=label,
-                font=("Arial", 12)
-            ).grid(row=idx, column=0, padx=5, pady=5, sticky="e")
+            ctk.CTkLabel(campos_frame, text=label).grid(row=idx, column=0, padx=5, pady=5, sticky="e")
             
-            # Entry ou Combobox
             if nome == "id_fornecedor":
-                self.campos[nome] = ctk.CTkComboBox(
-                    campos_frame,
-                    width=largura,
-                    font=("Arial", 12),
-                    state="readonly"
-                )
+                self.campos[nome] = ctk.CTkComboBox(campos_frame, width=largura)
                 self.campos[nome].set("Selecione...")
             else:
-                self.campos[nome] = ctk.CTkEntry(
-                    campos_frame,
-                    width=largura,
-                    font=("Arial", 12)
-                )
-            
-            # Posicionamento
+                self.campos[nome] = ctk.CTkEntry(campos_frame, width=largura)
+                
             self.campos[nome].grid(row=idx, column=1, padx=5, pady=5, sticky="w")
+        
         
         # Desabilitar campo ID (auto-incremento)
         self.campos["id_produto"].configure(state="disabled")
     
+    
+        # Desabilitar campo ID (auto-incremento)
+        self.campos["id_produto"].configure(state="disabled")
+    
     def carregar_fornecedores(self):
-        conn = None
-        cursor = None
         try:
             conn = conectar()
             cursor = conn.cursor()
-            cursor.execute("SELECT id_fornecedor, nome FROM fornecedor ORDER BY nome")
+            cursor.execute("SELECT id_produto, nome FROM fornecedor ORDER BY nome")
             
             fornecedores = cursor.fetchall()
-            valores = [f"{id_} - {nome}" for id_, nome in fornecedores]
+            valores = [f"{id_produto} - {nome}" for id_produto, nome in fornecedores]
             
-            self.campos["id_fornecedor"].configure(values=valores)
+            self.campos["id_produto"].configure(values=valores)
             
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao carregar fornecedores: {str(e)}")
         finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-    
-    def ordenar_por_coluna(self, coluna):
-        """Ordena os dados pela coluna clicada"""
-        # Alterna a direção se clicar na mesma coluna
-        if self.ordenacao['coluna'] == coluna:
-            self.ordenacao['direcao'] = 'DESC' if self.ordenacao['direcao'] == 'ASC' else 'ASC'
-        else:
-            self.ordenacao['coluna'] = coluna
-            self.ordenacao['direcao'] = 'ASC'
-        
-        self.listar_produtos()
+            conn.close()
     
     def validar_campos(self):
-        # Verifica campos obrigatórios
+        # Verifica se todos os campos obrigatórios estão preenchidos
         if not all([
             self.campos["nome"].get(),
             self.campos["quantidade"].get(),
             self.campos["preco"].get(),
-            self.campos["id_fornecedor"].get() != "Selecione..."
+            self.campos["id_produto"].get() != "Selecione..."
         ]):
             messagebox.showerror("Erro", "Preencha todos os campos obrigatórios!")
             return False
@@ -264,7 +186,7 @@ class ProdutoCRUD:
         # Valida quantidade
         try:
             quantidade = int(self.campos["quantidade"].get())
-            if quantidade < 0:
+            if quantidade <= 0:
                 raise ValueError
         except ValueError:
             messagebox.showerror("Erro", "Quantidade deve ser um número inteiro positivo!")
@@ -282,226 +204,77 @@ class ProdutoCRUD:
         return True
     
     def limpar_campos(self):
-        for nome, campo in self.campos.items():
+        for campo in self.campos.values():
             if isinstance(campo, ctk.CTkEntry):
-                if nome != "id_produto":
-                    campo.delete(0, "end")
+                campo.delete(0, ctk.END)
             elif isinstance(campo, ctk.CTkComboBox):
                 campo.set("Selecione...")
-    
-    def carregar_dados_selecionados(self, event):
-        selected = self.tree.selection()
-        if selected:
-            values = self.tree.item(selected, "values")
-            
-            # Atualiza os campos com os dados selecionados
-            self.limpar_campos()
-            
-            # ID Produto (se necessário)
-            # self.campos["id_produto"].configure(state="normal")
-            # self.campos["id_produto"].delete(0, "end")
-            # self.campos["id_produto"].insert(0, values[0])
-            # self.campos["id_produto"].configure(state="disabled")
-            
-            self.campos["nome"].insert(0, values[1])
-            self.campos["descricao"].insert(0, values[2])
-            self.campos["quantidade"].insert(0, values[3])
-            
-            # Formata o preço (remove "R$")
-            preco = values[4].replace("R$", "").strip()
-            self.campos["preco"].insert(0, preco)
-            
-            # Seleciona o fornecedor correspondente
-            fornecedor = values[5]
-            if fornecedor != "N/D":
-                # Procura o fornecedor na lista de valores
-                valores = self.campos["id_fornecedor"]._values
-                for valor in valores:
-                    if fornecedor in valor:
-                        self.campos["id_fornecedor"].set(valor)
-                        break
-    
-    def listar_produtos(self):
-        # Limpa a treeview
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        
-        conn = None
-        cursor = None
-        try:
-            conn = conectar()
-            cursor = conn.cursor()
-            
-            # Monta a query com ordenação dinâmica
-            query = f"""
-                SELECT p.id_produto, p.nome, p.descricao, p.quantidade, 
-                       p.preco, f.nome as fornecedor
-                FROM produto p
-                LEFT JOIN fornecedor f ON p.id_fornecedor = f.id_fornecedor
-                ORDER BY {self.ordenacao['coluna']} {self.ordenacao['direcao']}
-            """
-            
-            cursor.execute(query)
-            
-            for produto in cursor.fetchall():
-                # Formata os valores para exibição
-                preco_formatado = f"R$ {produto[4]:.2f}"
-                fornecedor = produto[5] if produto[5] else "N/D"
-                
-                self.tree.insert("", "end", values=(
-                    produto[0],  # ID
-                    produto[1],  # Nome
-                    produto[2],  # Descrição
-                    produto[3],  # Quantidade
-                    preco_formatado,  # Preço formatado
-                    fornecedor  # Fornecedor ou "N/D"
-                ))
-                
-        except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao carregar produtos:\n{str(e)}")
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
     
     def inserir_produto(self):
         if not self.validar_campos():
             return
+            
+        # Extrai ID do fornecedor (formato "ID - Nome")
+        fornecedor = self.campos["id_produto"].get()
+        id_fornecedor = int(fornecedor.split(" - ")[0])
         
-        conn = None
-        cursor = None
+        conn = conectar()
+        cursor = conn.cursor()
         try:
-            conn = conectar()
-            cursor = conn.cursor()
-            
-            # Extrai ID do fornecedor (formato "ID - Nome")
-            fornecedor = self.campos["id_fornecedor"].get()
-            id_fornecedor = int(fornecedor.split(" - ")[0])
-            
-            # Executa a inserção
             cursor.execute("""
-                INSERT INTO produto (nome, descricao, quantidade, preco, id_fornecedor)
+                INSERT INTO produto (nome, descricao, quantidade, preco, id_produto)
                 VALUES (%s, %s, %s, %s, %s)
             """, (
-                self.campos["nome"].get().strip(),
-                self.campos["descricao"].get().strip(),
+                self.campos["nome"].get(),
+                self.campos["descricao"].get(),
                 int(self.campos["quantidade"].get()),
                 float(self.campos["preco"].get().replace(",", ".")),
                 id_fornecedor
             ))
-            
             conn.commit()
-            
             messagebox.showinfo("Sucesso", "Produto cadastrado com sucesso!")
             
             self.limpar_campos()
             self.listar_produtos()
             
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao cadastrar produto:\n{str(e)}")
+            messagebox.showerror("Erro", f"Falha ao inserir produto: {str(e)}")
         finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+            conn.close()
     
-    def atualizar_produto(self):
-        selected = self.tree.selection()
-        if not selected:
-            messagebox.showwarning("Aviso", "Selecione um produto para atualizar!")
-            return
-            
-        if not self.validar_campos():
-            return
+    def listar_produtos(self):
+        self.textbox.delete("1.0", ctk.END)
         
-        conn = None
-        cursor = None
+        conn = conectar()
+        cursor = conn.cursor()
         try:
-            conn = conectar()
-            cursor = conn.cursor()
-            
-            # Obtém o ID do produto selecionado
-            produto_id = self.tree.item(selected, "values")[0]
-            
-            # Extrai ID do fornecedor (formato "ID - Nome")
-            fornecedor = self.campos["id_fornecedor"].get()
-            id_fornecedor = int(fornecedor.split(" - ")[0])
-            
-            # Executa a atualização
             cursor.execute("""
-                UPDATE produto 
-                SET nome = %s, descricao = %s, quantidade = %s, 
-                    preco = %s, id_fornecedor = %s
-                WHERE id_produto = %s
-            """, (
-                self.campos["nome"].get().strip(),
-                self.campos["descricao"].get().strip(),
-                int(self.campos["quantidade"].get()),
-                float(self.campos["preco"].get().replace(",", ".")),
-                id_fornecedor,
-                produto_id
-            ))
+                SELECT p.id_produto, p.nome, p.descricao, p.quantidade, 
+                       p.preco, f.nome as fornecedor
+                FROM produto p
+                LEFT JOIN fornecedor f ON p.id_fornecedor = f.id_produto
+                ORDER BY p.id_produto
+            """)
             
-            conn.commit()
+            # Cabeçalho formatado
+            self.textbox.insert(ctk.END, 
+                "ID  | NOME                | DESCRIÇÃO          | QTD  | PREÇO    | FORNECEDOR\n")
+            self.textbox.insert(ctk.END, "-"*95 + "\n")
             
-            messagebox.showinfo("Sucesso", "Produto atualizado com sucesso!")
-            
-            self.listar_produtos()
-            
+            # Dados formatados
+            for id_produto in cursor.fetchall():
+                self.textbox.insert(ctk.END, 
+                    f"{id_produto[0]:<4}| {id_produto[1][:20]:<20}| {id_produto[2][:20]:<20}| "
+                    f"{id_produto[3]:<5}| R${id_produto[4]:<8.2f}| {id_produto[5] or 'N/D'}\n"
+                )
+                
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao atualizar produto:\n{str(e)}")
+            messagebox.showerror("Erro", f"Falha ao carregar produtos: {str(e)}")
         finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-    
-    def excluir_produto(self):
-        selected = self.tree.selection()
-        if not selected:
-            messagebox.showwarning("Aviso", "Selecione um produto para excluir!")
-            return
-        
-        # Confirmação da exclusão
-        confirmacao = messagebox.askyesno(
-            "Confirmação", 
-            f"Tem certeza que deseja excluir o produto {self.tree.item(selected, 'values')[1]}?"
-        )
-        
-        if confirmacao:
-            conn = None
-            cursor = None
-            try:
-                conn = conectar()
-                cursor = conn.cursor()
-                
-                # Obtém o ID do produto selecionado
-                produto_id = self.tree.item(selected, "values")[0]
-                
-                # Executa a exclusão
-                cursor.execute("""
-                    DELETE FROM produto 
-                    WHERE id_produto = %s
-                """, (produto_id,))
-                
-                conn.commit()
-                
-                messagebox.showinfo("Sucesso", "Produto excluído com sucesso!")
-                
-                self.limpar_campos()
-                self.listar_produtos()
-                
-            except Exception as e:
-                messagebox.showerror("Erro", f"Falha ao excluir produto:\n{str(e)}")
-            finally:
-                if cursor:
-                    cursor.close()
-                if conn:
-                    conn.close()
+            conn.close()
 
-def abrir():
-    app = ProdutoCRUD()
+def abrir(janela_principal=None):
+    app = ProdutoCRUD(janela_principal)
     app.janela.mainloop()
 
 if __name__ == "__main__":
