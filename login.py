@@ -55,7 +55,8 @@ class App(ctk.CTk):
             
             if resultado:
                 tipo = resultado[0]
-                self.destroy()  # Fecha a janela de login
+                self.after_cancel('all')
+                self.destroy  # Fecha a janela de login
                 
                 if tipo == "comum":
                     from compra import abrir_tela_compra
