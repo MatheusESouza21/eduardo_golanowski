@@ -41,38 +41,38 @@ class App(ctk.CTk):
     def verificar_login(self):
         usuario = self.entry_usuario.get()
         senha = self.entry_senha.get()
-        
+    
         if not usuario or not senha:
             messagebox.showerror("Erro", "Preencha todos os campos!")
             return
             
         conn = conectar()
         cursor = conn.cursor()
-        
+    
         try:
-            cursor.execute("SELECT tipo FROM usuario WHERE nome = %s AND senha = %s", (usuario, senha))
+            # Modifique a query para retornar também o id do usuário
+            cursor.execute("SELECT id_usuario, tipo FROM usuario WHERE nome = %s AND senha = %s", (usuario, senha))
             resultado = cursor.fetchone()
-            
+        
             if resultado:
-                tipo = resultado[0]
-                self.after_cancel('all')
-                self.destroy  # Fecha a janela de login
-                
+                id_usuario = resultado[0]  # Pegamos o id do usuário
+                tipo = resultado[1]
+                self.destroy()  # Fecha a janela de login
+            
                 if tipo == "comum":
                     from compra import abrir_tela_compra
-                    abrir_tela_compra()
+                    abrir_tela_compra(id_usuario)  # Passamos o id do usuário
                 elif tipo == "administrador":
                     from admin_crud import abrir_menu_admin
                     abrir_menu_admin()
             else:
                 messagebox.showerror("Erro", "Usuário ou senha inválidos")
-                
+            
         except Exception as e:
             messagebox.showerror("Erro", f"Falha na conexão: {str(e)}")
         finally:
             if conn:
                 conn.close()
-
 if __name__ == "__main__":
     app = App()
     app.mainloop()
