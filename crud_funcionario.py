@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from db_config import conectar
 from CTkMessagebox import CTkMessagebox
 import re
@@ -14,6 +14,12 @@ class FuncionarioCRUD:
         # Configuração do tema
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
+        
+        # Variável para controle da ordenação
+        self.ordenacao = {
+            'coluna': 'id_funcionario',
+            'direcao': 'ASC'
+        }
         
         self.criar_interface()
         self.listar_funcionarios()
@@ -97,17 +103,18 @@ class FuncionarioCRUD:
             selectmode="browse"
         )
         
-        # Configurar colunas
+        # Configurar colunas com bind para ordenação
         colunas = [
-            ("ID", 50, "center"),
-            ("Nome", 250, "w"),
-            ("Cargo", 150, "w"),
-            ("CPF", 150, "center"),
-            ("Salário", 150, "center")
+            ("ID", 50, "center", "id_funcionario"),
+            ("Nome", 250, "w", "nome"),
+            ("Cargo", 150, "w", "cargo"),
+            ("CPF", 150, "center", "cpf"),
+            ("Salário", 150, "center", "salario")
         ]
         
-        for col, width, anchor in colunas:
-            self.tree.heading(col, text=col)
+        for col, width, anchor, coluna_db in colunas:
+            self.tree.heading(col, text=col, 
+                            command=lambda c=coluna_db: self.ordenar_por_coluna(c))
             self.tree.column(col, width=width, anchor=anchor)
         
         # Scrollbar
@@ -157,7 +164,8 @@ class FuncionarioCRUD:
             font=('Arial', 10, 'bold')
         )
         style.map("Treeview.Heading",
-            background=[('active', '#3484F0')]
+            background=[('active', '#3484F0')],
+            relief=[('pressed', 'sunken'), ('!pressed', 'raised')]
         )
     
     def criar_campos_formulario(self):
@@ -234,6 +242,17 @@ class FuncionarioCRUD:
                 self.campos["salario"].insert(0, formatado)
             except:
                 pass
+    
+    def ordenar_por_coluna(self, coluna):
+        """Ordena os dados pela coluna clicada"""
+        # Alterna a direção se clicar na mesma coluna
+        if self.ordenacao['coluna'] == coluna:
+            self.ordenacao['direcao'] = 'DESC' if self.ordenacao['direcao'] == 'ASC' else 'ASC'
+        else:
+            self.ordenacao['coluna'] = coluna
+            self.ordenacao['direcao'] = 'ASC'
+        
+        self.listar_funcionarios()
     
     def validar_cpf(self, cpf):
         cpf = re.sub(r'[^0-9]', '', cpf)
@@ -325,51 +344,225 @@ class FuncionarioCRUD:
             self.campos["salario"].insert(0, salario)
     
     def listar_funcionarios(self):
-    # Verifica se a treeview existe
-        if not hasattr(self, 'tree'):
-            messagebox.showerror("Erro", "Treeview não foi criada corretamente!")
-            return
-
-    # Limpa a treeview
-        self.tree.delete(*self.tree.get_children())
-
-    try:
-        conn = conectar()
-        with conn.cursor() as cursor:
-            # Consulta SQL
-            cursor.execute("""
+        # Limpa a treeview
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            
+            # Monta a query com ordenação dinâmica
+            query = f"""
                 SELECT id_funcionario, nome, cargo, cpf, salario 
-                FROM funcionario
-                ORDER BY nome
-            """)
-            funcionarios = cursor.fetchall()
-
-        # Se não houver funcionários
-        if not funcionarios:
+                FROM funcionario 
+                ORDER BY {self.ordenacao['coluna']} {self.ordenacao['direcao']}
+            """
+            
+            cursor.execute(query)
+            
+            for funcionario in cursor.fetchall():
+                # Formata os valores para exibição
+                cpf_formatado = f"{funcionario[3][:3]}.{funcionario[3][3:6]}.{funcionario[3][6:9]}-{funcionario[3][9:]}"
+                salario_formatado = f"R$ {funcionario[4]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                
+                self.tree.insert("", "end", values=(
+                    funcionario[0],  # ID
+                    funcionario[1],  # Nome
+                    funcionario[2],  # Cargo
+                    cpf_formatado,   # CPF formatado
+                    salario_formatado  # Salário formatado
+                ))
+                
+        except Exception as e:
             CTkMessagebox(
-                title="Informação",
-                message="Nenhum funcionário cadastrado!",
-                icon="info"
+                title="Erro", 
+                message=f"Falha ao carregar funcionários:\n{str(e)}", 
+                icon="cancel"
+            )
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    def inserir_funcionario(self):
+        if not self.validar_campos():
+            return
+        
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            
+            # Prepara os dados
+            cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
+            salario = float(
+                self.campos["salario"].get()
+                .replace(".", "")
+                .replace(",", ".")
             )
             
-
-        # Adiciona os dados na treeview
-        for funcionario in funcionarios:
-            id_funcionario, nome, cargo, cpf, salario = funcionario
-            cpf_formatado = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:11]}" if cpf else ""
-            salario_formatado = f"R$ {float(salario):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            # Executa a inserção
+            cursor.execute("""
+                INSERT INTO funcionario (nome, cargo, cpf, salario)
+                VALUES (%s, %s, %s, %s)
+            """, (
+                self.campos["nome"].get().strip(),
+                self.campos["cargo"].get().strip(),
+                cpf,
+                salario
+            ))
             
-
-    except Exception as e:
-        CTkMessagebox(
-            title="Erro",
-            message=f"Falha ao listar funcionários:\n{str(e)}",
-            icon="cancel"
-        )
-    finally:
-        if conn:
-            conn.close()
+            conn.commit()
+            
+            CTkMessagebox(
+                title="Sucesso", 
+                message="Funcionário cadastrado com sucesso!", 
+                icon="check"
+            )
+            
+            self.limpar_campos()
+            self.listar_funcionarios()
+            
+        except Exception as e:
+            CTkMessagebox(
+                title="Erro", 
+                message=f"Falha ao cadastrar funcionário:\n{str(e)}", 
+                icon="cancel"
+            )
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
     
+    def atualizar_funcionario(self):
+        selected = self.tree.selection()
+        if not selected:
+            CTkMessagebox(
+                title="Aviso", 
+                message="Selecione um funcionário para atualizar!", 
+                icon="warning"
+            )
+            return
+            
+        if not self.validar_campos():
+            return
+        
+        conn = None
+        cursor = None
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            
+            # Obtém o ID do funcionário selecionado
+            funcionario_id = self.tree.item(selected, "values")[0]
+            
+            # Prepara os dados
+            cpf = re.sub(r'[^0-9]', '', self.campos["cpf"].get())
+            salario = float(
+                self.campos["salario"].get()
+                .replace(".", "")
+                .replace(",", ".")
+            )
+            
+            # Executa a atualização
+            cursor.execute("""
+                UPDATE funcionario 
+                SET nome = %s, cargo = %s, cpf = %s, salario = %s
+                WHERE id_funcionario = %s
+            """, (
+                self.campos["nome"].get().strip(),
+                self.campos["cargo"].get().strip(),
+                cpf,
+                salario,
+                funcionario_id
+            ))
+            
+            conn.commit()
+            
+            CTkMessagebox(
+                title="Sucesso", 
+                message="Dados do funcionário atualizados com sucesso!", 
+                icon="check"
+            )
+            
+            self.listar_funcionarios()
+            
+        except Exception as e:
+            CTkMessagebox(
+                title="Erro", 
+                message=f"Falha ao atualizar funcionário:\n{str(e)}", 
+                icon="cancel"
+            )
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    def excluir_funcionario(self):
+        selected = self.tree.selection()
+        if not selected:
+            CTkMessagebox(
+                title="Aviso", 
+                message="Selecione um funcionário para excluir!", 
+                icon="warning"
+            )
+            return
+        
+        # Confirmação da exclusão
+        confirmacao = CTkMessagebox(
+            title="Confirmação", 
+            message=f"Tem certeza que deseja excluir o funcionário {self.tree.item(selected, 'values')[1]}?", 
+            icon="question", 
+            option_1="Cancelar", 
+            option_2="Excluir"
+        )
+        
+        if confirmacao.get() == "Excluir":
+            conn = None
+            cursor = None
+            try:
+                conn = conectar()
+                cursor = conn.cursor()
+                
+                # Obtém o ID do funcionário selecionado
+                funcionario_id = self.tree.item(selected, "values")[0]
+                
+                # Executa a exclusão
+                cursor.execute("""
+                    DELETE FROM funcionario 
+                    WHERE id_funcionario = %s
+                """, (funcionario_id,))
+                
+                conn.commit()
+                
+                CTkMessagebox(
+                    title="Sucesso", 
+                    message="Funcionário excluído com sucesso!", 
+                    icon="check"
+                )
+                
+                self.limpar_campos()
+                self.listar_funcionarios()
+                
+            except Exception as e:
+                CTkMessagebox(
+                    title="Erro", 
+                    message=f"Falha ao excluir funcionário:\n{str(e)}", 
+                    icon="cancel"
+                )
+            finally:
+                if cursor:
+                    cursor.close()
+                if conn:
+                    conn.close()
+
 def abrir():
     app = FuncionarioCRUD()
     app.janela.mainloop()

@@ -408,37 +408,34 @@ class FornecedorCRUD:
             
             # Executa a inserção
             cursor.execute("""
-                SELECT p.id_fornecedor, p.nome, p.descricao, p.quantidade, 
-                       p.preco, f.nome as fornecedor
-                FROM produto p
-                LEFT JOIN fornecedor f ON p.id_fornecedor = f.id
-                ORDER BY p.id
-            """)
+                INSERT INTO fornecedor (nome, cnpj, telefone, endereco)
+                VALUES (%s, %s, %s, %s)
+            """, (
+                self.campos["nome"].get().strip(),
+                cnpj,
+                telefone,
+                self.campos["endereco"].get().strip()
+            ))
             
-            # Cabeçalho
-            self.textbox.insert(ctk.END, "ID  | NOME                | DESCRIÇÃO          | QTD | PREÇO   | FORNECEDOR\n")
-            self.textbox.insert(ctk.END, "-"*90 + "\n")
+            conn.commit()
             
-            # Dados
-            for produto in cursor.fetchall():
-                self.textbox.insert(ctk.END, 
-                    f"{produto[0]:<4}| {produto[1][:20]:<20}| {produto[2][:20]:<20}| "
-                    f"{produto[3]:<4}| R${produto[4]:<7.2f}| {produto[5] or 'N/D'}\n"
-                )
+            messagebox.showinfo("Sucesso", "Fornecedor cadastrado com sucesso!")
+            
+            self.limpar_campos()
+            self.listar_fornecedores()
+            
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao cadastrar fornecedor:\n{str(e)}")
         finally:
-            conn.close()
-
-    def inserir_produto(self):
-        # Validação
-        if not all([
-            self.entry_nome.get(),
-            self.entry_quantidade.get().isdigit(),
-            self.entry_preco.get().replace('.', '').isdigit(),
-            self.entry_id_fornecedor.get().isdigit()
-        ]):
-            messagebox.showerror("Erro", "Preencha todos os campos corretamente!")
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    def atualizar_fornecedor(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Aviso", "Selecione um fornecedor para atualizar!")
             return
             
         if not self.validar_campos():
