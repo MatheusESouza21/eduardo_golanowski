@@ -1,10 +1,12 @@
 import customtkinter as ctk
-from db_config import conectar
-from tkinter import messagebox
 from tkinter import ttk
+from db_config import conectar
+from CTkMessagebox import CTkMessagebox
+import re
 
 class ProdutoCRUD:
-    def __init__(self):
+    def __init__(self, admin_menu=None):
+        self.admin_menu = admin_menu
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Produto")
         self.janela.geometry("1000x750")
@@ -16,13 +18,16 @@ class ProdutoCRUD:
         
         # Variável para controle da ordenação
         self.ordenacao = {
-            'coluna': 'p.id',
+            'coluna': 'p.id_produto',
             'direcao': 'ASC'
         }
         
         self.criar_interface()
         self.carregar_fornecedores()
         self.listar_produtos()
+        
+        # Configurar o que acontece ao fechar a janela
+        self.janela.protocol("WM_DELETE_WINDOW", self.voltar_admin)
     
     def criar_interface(self):
         # Frame principal
@@ -105,7 +110,7 @@ class ProdutoCRUD:
         
         # Configurar colunas com bind para ordenação
         colunas = [
-            ("ID", 50, "center", "p.id"),
+            ("ID", 50, "center", "p.id_produto"),
             ("Nome", 200, "w", "p.nome"),
             ("Descrição", 200, "w", "p.descricao"),
             ("Quantidade", 80, "center", "p.quantidade"),
@@ -136,13 +141,36 @@ class ProdutoCRUD:
         # Estilização do Treeview
         self.configurar_estilo_treeview()
         
+        # Frame para botões inferiores
+        self.bottom_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.bottom_frame.pack(pady=10, fill="x")
+        
         # Botão de atualizar lista
         ctk.CTkButton(
-            self.list_frame,
+            self.bottom_frame,
             text="Atualizar Lista",
             command=self.listar_produtos,
             width=120
-        ).pack(pady=10)
+        ).pack(side="left", padx=5)
+        
+        # Botão Voltar ao Admin
+        ctk.CTkButton(
+            self.bottom_frame,
+            text="Voltar ao Admin",
+            command=self.voltar_admin,
+            fg_color="transparent",
+            border_width=1,
+            border_color="#6c757d",
+            text_color="#6c757d",
+            hover_color="#f8f9fa",
+            width=120
+        ).pack(side="right", padx=5)
+    
+    def voltar_admin(self):
+        """Fecha a janela atual e reabre o menu admin"""
+        self.janela.destroy()
+        if self.admin_menu:
+            self.admin_menu.janela.deiconify()
     
     def configurar_estilo_treeview(self):
         style = ttk.Style()
@@ -232,7 +260,11 @@ class ProdutoCRUD:
             self.campos["id_fornecedor"].configure(values=valores)
             
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao carregar fornecedores: {str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao carregar fornecedores: {str(e)}",
+                icon="cancel"
+            )
         finally:
             if cursor:
                 cursor.close()
@@ -258,7 +290,11 @@ class ProdutoCRUD:
             self.campos["preco"].get(),
             self.campos["id_fornecedor"].get() != "Selecione..."
         ]):
-            messagebox.showerror("Erro", "Preencha todos os campos obrigatórios!")
+            CTkMessagebox(
+                title="Erro",
+                message="Preencha todos os campos obrigatórios!",
+                icon="cancel"
+            )
             return False
         
         # Valida quantidade
@@ -267,7 +303,11 @@ class ProdutoCRUD:
             if quantidade < 0:
                 raise ValueError
         except ValueError:
-            messagebox.showerror("Erro", "Quantidade deve ser um número inteiro positivo!")
+            CTkMessagebox(
+                title="Erro",
+                message="Quantidade deve ser um número inteiro positivo!",
+                icon="cancel"
+            )
             return False
         
         # Valida preço
@@ -276,7 +316,11 @@ class ProdutoCRUD:
             if preco <= 0:
                 raise ValueError
         except ValueError:
-            messagebox.showerror("Erro", "Preço deve ser um número positivo!")
+            CTkMessagebox(
+                title="Erro",
+                message="Preço deve ser um número positivo!",
+                icon="cancel"
+            )
             return False
         
         return True
@@ -358,7 +402,11 @@ class ProdutoCRUD:
                 ))
                 
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao carregar produtos:\n{str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao carregar produtos:\n{str(e)}",
+                icon="cancel"
+            )
         finally:
             if cursor:
                 cursor.close()
@@ -393,13 +441,21 @@ class ProdutoCRUD:
             
             conn.commit()
             
-            messagebox.showinfo("Sucesso", "Produto cadastrado com sucesso!")
+            CTkMessagebox(
+                title="Sucesso",
+                message="Produto cadastrado com sucesso!",
+                icon="check"
+            )
             
             self.limpar_campos()
             self.listar_produtos()
             
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao cadastrar produto:\n{str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao cadastrar produto:\n{str(e)}",
+                icon="cancel"
+            )
         finally:
             if cursor:
                 cursor.close()
@@ -409,7 +465,11 @@ class ProdutoCRUD:
     def atualizar_produto(self):
         selected = self.tree.selection()
         if not selected:
-            messagebox.showwarning("Aviso", "Selecione um produto para atualizar!")
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecione um produto para atualizar!",
+                icon="warning"
+            )
             return
             
         if not self.validar_campos():
@@ -445,12 +505,20 @@ class ProdutoCRUD:
             
             conn.commit()
             
-            messagebox.showinfo("Sucesso", "Produto atualizado com sucesso!")
+            CTkMessagebox(
+                title="Sucesso",
+                message="Produto atualizado com sucesso!",
+                icon="check"
+            )
             
             self.listar_produtos()
             
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao atualizar produto:\n{str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao atualizar produto:\n{str(e)}",
+                icon="cancel"
+            )
         finally:
             if cursor:
                 cursor.close()
@@ -460,16 +528,23 @@ class ProdutoCRUD:
     def excluir_produto(self):
         selected = self.tree.selection()
         if not selected:
-            messagebox.showwarning("Aviso", "Selecione um produto para excluir!")
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecione um produto para excluir!",
+                icon="warning"
+            )
             return
         
         # Confirmação da exclusão
-        confirmacao = messagebox.askyesno(
-            "Confirmação", 
-            f"Tem certeza que deseja excluir o produto {self.tree.item(selected, 'values')[1]}?"
+        confirmacao = CTkMessagebox(
+            title="Confirmação", 
+            message=f"Tem certeza que deseja excluir o produto {self.tree.item(selected, 'values')[1]}?",
+            icon="question", 
+            option_1="Cancelar", 
+            option_2="Excluir"
         )
         
-        if confirmacao:
+        if confirmacao.get() == "Excluir":
             conn = None
             cursor = None
             try:
@@ -487,21 +562,29 @@ class ProdutoCRUD:
                 
                 conn.commit()
                 
-                messagebox.showinfo("Sucesso", "Produto excluído com sucesso!")
+                CTkMessagebox(
+                    title="Sucesso",
+                    message="Produto excluído com sucesso!",
+                    icon="check"
+                )
                 
                 self.limpar_campos()
                 self.listar_produtos()
                 
             except Exception as e:
-                messagebox.showerror("Erro", f"Falha ao excluir produto:\n{str(e)}")
+                CTkMessagebox(
+                    title="Erro",
+                    message=f"Falha ao excluir produto:\n{str(e)}",
+                    icon="cancel"
+                )
             finally:
                 if cursor:
                     cursor.close()
                 if conn:
                     conn.close()
 
-def abrir():
-    app = ProdutoCRUD()
+def abrir(admin_menu=None):
+    app = ProdutoCRUD(admin_menu)
     app.janela.mainloop()
 
 if __name__ == "__main__":

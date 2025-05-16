@@ -10,8 +10,11 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Sistema de Login")
-        self.geometry("400x340")  # Tamanho reduzido
+        self.geometry("400x340")
         self.resizable(False, False)
+        
+        # Variável para controlar o fechamento
+        self.fechando = False
         
         # Frame principal
         self.frame = ctk.CTkFrame(self)
@@ -19,6 +22,14 @@ class App(ctk.CTk):
         
         # Elementos da interface
         self.criar_interface_login()
+        
+        # Configurar protocolo de fechamento
+        self.protocol("WM_DELETE_WINDOW", self.fechar_janela)
+
+    def fechar_janela(self):
+        """Método para fechar a janela corretamente"""
+        self.fechando = True
+        self.destroy()
 
     def criar_interface_login(self):
         # Título
@@ -39,6 +50,9 @@ class App(ctk.CTk):
         ctk.CTkButton(self.frame, text="Entrar", command=self.verificar_login).pack(pady=20)
 
     def verificar_login(self):
+        if self.fechando:
+            return
+            
         usuario = self.entry_usuario.get()
         senha = self.entry_senha.get()
     
@@ -50,18 +64,18 @@ class App(ctk.CTk):
         cursor = conn.cursor()
     
         try:
-            # Modifique a query para retornar também o id do usuário
             cursor.execute("SELECT id_usuario, tipo FROM usuario WHERE nome = %s AND senha = %s", (usuario, senha))
             resultado = cursor.fetchone()
         
             if resultado:
-                id_usuario = resultado[0]  # Pegamos o id do usuário
+                id_usuario = resultado[0]
                 tipo = resultado[1]
+                self.fechando = True
                 self.destroy()  # Fecha a janela de login
             
                 if tipo == "comum":
                     from compra import abrir_tela_compra
-                    abrir_tela_compra(id_usuario)  # Passamos o id do usuário
+                    abrir_tela_compra(id_usuario)
                 elif tipo == "administrador":
                     from admin_crud import abrir_menu_admin
                     abrir_menu_admin()
@@ -73,6 +87,7 @@ class App(ctk.CTk):
         finally:
             if conn:
                 conn.close()
+
 if __name__ == "__main__":
     app = App()
     app.mainloop()

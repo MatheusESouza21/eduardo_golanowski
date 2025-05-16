@@ -4,10 +4,17 @@ from db_config import conectar
 from CTkMessagebox import CTkMessagebox
 
 class UsuarioCRUD:
-    def __init__(self):
+    import customtkinter as ctk
+from tkinter import ttk
+from db_config import conectar
+from CTkMessagebox import CTkMessagebox
+
+class UsuarioCRUD:
+    def __init__(self, admin_menu=None):
+        self.admin_menu = admin_menu
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Usuário")
-        self.janela.geometry("700x600")
+        self.janela.geometry("700x650")  # Aumentei a altura para acomodar o botão Voltar
         self.janela.resizable(False, False)
         
         # Configuração do tema
@@ -16,6 +23,9 @@ class UsuarioCRUD:
         
         self.criar_interface()
         self.listar_usuarios()
+        
+        # Configurar o que acontece ao fechar a janela
+        self.janela.protocol("WM_DELETE_WINDOW", self.voltar_admin)
     
     def criar_interface(self):
         # Frame principal
@@ -126,15 +136,39 @@ class UsuarioCRUD:
         self.tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
+        # Frame para botões inferiores
+        self.bottom_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.bottom_frame.pack(pady=10, fill="x")
+        
         # Botão de atualizar lista
         ctk.CTkButton(
-            self.list_frame,
+            self.bottom_frame,
             text="Atualizar Lista",
-            command=self.listar_usuarios
-        ).pack(pady=5)
+            command=self.listar_usuarios,
+            width=120
+        ).pack(side="left", padx=5)
+        
+        # Botão Voltar ao Admin
+        ctk.CTkButton(
+            self.bottom_frame,
+            text="Voltar ao Admin",
+            command=self.voltar_admin,
+            fg_color="transparent",
+            border_width=1,
+            border_color="#6c757d",
+            text_color="#6c757d",
+            hover_color="#f8f9fa",
+            width=120
+        ).pack(side="right", padx=5)
         
         # Configurar evento de seleção
         self.tree.bind("<<TreeviewSelect>>", self.carregar_dados_selecionados)
+    
+    def voltar_admin(self):
+        """Fecha a janela atual e reabre o menu admin"""
+        self.janela.destroy()
+        if self.admin_menu:
+            self.admin_menu.janela.deiconify()
     
     
     def criar_campos_formulario(self):
