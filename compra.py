@@ -3,7 +3,7 @@ from tkinter import messagebox
 from db_config import conectar
 from CTkMessagebox import CTkMessagebox
 import datetime
-import decimal  # Importação adicionada para lidar com decimais
+import decimal
 
 class TelaCompra:
     def __init__(self, id_usuario):
@@ -123,9 +123,9 @@ class TelaCompra:
         # Botão de limpar carrinho
         ctk.CTkButton(
             carrinho_footer_frame,
-            text="🗑️ Limpar",
+            text="🗑️ Limpar Tudo",
             command=self.limpar_carrinho,
-            width=80,
+            width=100,
             fg_color="#dc3545"
         ).pack(side="right", padx=5)
         
@@ -339,7 +339,7 @@ class TelaCompra:
             # Preço unitário
             ctk.CTkLabel(
                 item_frame,
-                text=f"R$ {float(item['preco']):.2f}",  # Convertendo para float
+                text=f"R$ {float(item['preco']):.2f}",
                 width=80,
                 anchor="center"
             ).pack(side="left", padx=2)
@@ -347,13 +347,13 @@ class TelaCompra:
             # Subtotal
             ctk.CTkLabel(
                 item_frame,
-                text=f"R$ {float(item['subtotal']):.2f}",  # Convertendo para float
+                text=f"R$ {float(item['subtotal']):.2f}",
                 width=80,
                 anchor="center"
             ).pack(side="left", padx=2)
             
             # Frame de ações
-            acoes_frame = ctk.CTkFrame(item_frame, fg_color="transparent", width=80)
+            acoes_frame = ctk.CTkFrame(item_frame, fg_color="transparent", width=120)
             acoes_frame.pack(side="left", padx=2)
             
             # Botão para aumentar quantidade
@@ -376,28 +376,43 @@ class TelaCompra:
                 command=lambda i=item: self.alterar_quantidade_carrinho(i, -1)
             ).pack(side="left", padx=1)
             
-            # Botão para remover
+            # Botão para remover item individual
             ctk.CTkButton(
                 acoes_frame,
-                text="❌",
+                text="🗑️",
                 width=30,
                 height=24,
                 font=("Arial", 10),
                 fg_color="#dc3545",
                 hover_color="#c82333",
-                command=lambda i=item: self.remover_do_carrinho(i)
+                command=lambda i=item: self.remover_item_carrinho(i)
             ).pack(side="left", padx=1)
             
-            total_geral += float(item['subtotal'])  # Convertendo para float antes de somar
+            total_geral += float(item['subtotal'])
         
         self.label_total.configure(text=f"Total: R$ {total_geral:,.2f}")
+    
+    def remover_item_carrinho(self, item):
+        # Confirmar remoção
+        msg = CTkMessagebox(
+            title="Confirmar Remoção",
+            message=f"Remover {item['nome']} do carrinho?",
+            icon="question",
+            option_1="Cancelar",
+            option_2="Remover"
+        )
+        
+        if msg.get() == "Remover":
+            self.carrinho.remove(item)
+            self.atualizar_carrinho()
+            messagebox.showinfo("Sucesso", "Item removido do carrinho!")
     
     def alterar_quantidade_carrinho(self, item, delta):
         nova_quantidade = item['quantidade'] + delta
         
         # Verificar limites
         if nova_quantidade < 1:
-            self.remover_do_carrinho(item)
+            self.remover_item_carrinho(item)
             return
         
         if nova_quantidade > item['quantidade_disponivel']:
@@ -406,18 +421,27 @@ class TelaCompra:
         
         # Atualizar quantidade
         item['quantidade'] = nova_quantidade
-        item['subtotal'] = float(nova_quantidade) * float(item['preco'])  # Convertendo para float
+        item['subtotal'] = float(nova_quantidade) * float(item['preco'])
         
         # Atualizar carrinho
         self.atualizar_carrinho()
     
-    def remover_do_carrinho(self, item):
-        self.carrinho.remove(item)
-        self.atualizar_carrinho()
-    
     def limpar_carrinho(self):
-        self.carrinho = []
-        self.atualizar_carrinho()
+        if not self.carrinho:
+            return
+            
+        msg = CTkMessagebox(
+            title="Confirmar Limpeza",
+            message="Deseja realmente limpar todo o carrinho?",
+            icon="question",
+            option_1="Cancelar",
+            option_2="Limpar"
+        )
+        
+        if msg.get() == "Limpar":
+            self.carrinho = []
+            self.atualizar_carrinho()
+            messagebox.showinfo("Sucesso", "Carrinho limpo com sucesso!")
     
     def pesquisar_produtos(self):
         filtro = self.entry_pesquisa.get()
@@ -427,9 +451,9 @@ class TelaCompra:
         if not self.carrinho:
             messagebox.showwarning("Aviso", "O carrinho está vazio!")
             return
-        
-        total = sum(float(item['subtotal']) for item in self.carrinho)  # Convertendo para float
-        
+    
+        total = sum(float(item['subtotal']) for item in self.carrinho)
+    
         # Confirmar compra
         msg = CTkMessagebox(
             title="Confirmar Compra",
@@ -438,29 +462,28 @@ class TelaCompra:
             option_1="Cancelar",
             option_2="Confirmar"
         )
-        
+    
         if msg.get() == "Confirmar":
             conn = None
             try:
                 conn = conectar()
                 cursor = conn.cursor()
-                
+            
                 # 1. Registrar o cabeçalho da compra
                 cursor.execute(
                     "INSERT INTO compra (data_compra, total, id_usuario) VALUES (%s, %s, %s)",
                     (datetime.datetime.now(), total, self.id_usuario)
                 )
                 id_compra = cursor.lastrowid
-                
-                # 2. Registrar os itens da compra
+            
+                # 2. Registrar os itens da compra (sem incluir subtotal)
                 for item in self.carrinho:
                     cursor.execute(
                         """INSERT INTO item_compra 
-                        (id_compra, id_produto, quantidade, preco_unitario, subtotal) 
-                        VALUES (%s, %s, %s, %s, %s)""",
-                        (id_compra, item['id_produto'], item['quantidade'], float(item['preco']), float(item['subtotal']))
-                    )
-                    
+                        (id_compra, id_produto, quantidade, preco_unitario) 
+                        VALUES (%s, %s, %s, %s)""",
+                        (id_compra, item['id_produto'], item['quantidade'], float(item['preco'])))
+                
                     # 3. Atualizar estoque (aumenta estoque para compras)
                     cursor.execute(
                         """UPDATE produto 
@@ -468,19 +491,19 @@ class TelaCompra:
                         WHERE id_produto = %s""",
                         (item['quantidade'], item['id_produto'])
                     )
-                
+            
                 conn.commit()
-                
+            
                 CTkMessagebox(
                     title="Sucesso",
                     message=f"Compra #{id_compra} registrada com sucesso!",
                     icon="check"
                 )
-                
+            
                 # Limpar carrinho e recarregar produtos
                 self.limpar_carrinho()
                 self.carregar_produtos()
-                
+            
             except Exception as e:
                 if conn:
                     conn.rollback()
