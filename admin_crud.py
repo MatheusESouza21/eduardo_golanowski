@@ -53,6 +53,11 @@ class AdminMenu:
         # Configuração dos botões
         botoes = [
             {
+                "texto": "📊 Dashboard",
+                "comando": self.abrir_dashboard,
+                "cor": "#007bff"
+            },
+            {
                 "texto": "👥 Gerenciar Usuários",
                 "comando": self.abrir_crud_usuario,
                 "cor": "#2aa745"
@@ -107,6 +112,21 @@ class AdminMenu:
         rgb = tuple(int(cor_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
         escuro = tuple(int(c * fator) for c in rgb)
         return f"#{escuro[0]:02x}{escuro[1]:02x}{escuro[2]:02x}"
+    
+    def abrir_dashboard(self):
+        if not self.fechando:
+            self.janela.withdraw()
+            from dashboard import DashboardApp  # Importe aqui para evitar importação circular
+            dashboard = DashboardApp()
+            dashboard.root.mainloop()
+
+            dashboard_app.root.protocol("WM_DELETE_WINDOW", lambda: self.on_dashboard_close(dashboard_app))
+            dashboard_app.root.mainloop()
+    
+    def on_dashboard_close(self, dashboard_app):
+        """Função chamada quando o dashboard é fechado"""
+        dashboard_app.root.destroy()
+        self.janela.deiconify()  # Mostra o menu admin novamente
     
     def abrir_crud_usuario(self):
         if not self.fechando:
