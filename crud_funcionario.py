@@ -5,7 +5,8 @@ from CTkMessagebox import CTkMessagebox
 import re
 
 class FuncionarioCRUD:
-    def __init__(self):
+    def __init__(self,admin_menu=None):
+        self.admin_menu = admin_menu
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Funcionário")
         self.janela.geometry("1000x700")
@@ -563,8 +564,8 @@ class FuncionarioCRUD:
                 if conn:
                     conn.close()
 
-def abrir():
-    app = FuncionarioCRUD()
+def abrir(admin_menu=None):
+    app = FuncionarioCRUD(admin_menu)
     app.janela.mainloop()
 
 if __name__ == "__main__":

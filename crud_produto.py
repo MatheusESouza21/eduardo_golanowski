@@ -5,7 +5,7 @@ from CTkMessagebox import CTkMessagebox
 import re
 
 class ProdutoCRUD:
-    def __init__(self, admin_menu=None):
+    def __init__(self,admin_menu=None):
         self.admin_menu = admin_menu
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Produto")
@@ -201,20 +201,19 @@ class ProdutoCRUD:
         # Frame para os campos
         campos_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
         campos_frame.pack(fill="x", padx=10, pady=5)
-        
+    
         # Dicionário para armazenar os campos
         self.campos = {}
-        
+    
         # Configuração dos campos
         campos_config = [
-            ("id_produto", "ID Produto:", 100),
             ("nome", "Nome:", 300),
             ("descricao", "Descrição:", 300),
             ("quantidade", "Quantidade:", 100),
             ("preco", "Preço (R$):", 150),
             ("id_fornecedor", "Fornecedor:", 250)
         ]
-        
+    
         # Criar campos dinamicamente
         for idx, (nome, label, largura) in enumerate(campos_config):
             # Label
@@ -223,7 +222,7 @@ class ProdutoCRUD:
                 text=label,
                 font=("Arial", 12)
             ).grid(row=idx, column=0, padx=5, pady=5, sticky="e")
-            
+        
             # Entry ou Combobox
             if nome == "id_fornecedor":
                 self.campos[nome] = ctk.CTkComboBox(
@@ -239,12 +238,11 @@ class ProdutoCRUD:
                     width=largura,
                     font=("Arial", 12)
                 )
-            
+        
             # Posicionamento
             self.campos[nome].grid(row=idx, column=1, padx=5, pady=5, sticky="w")
-        
-        # Desabilitar campo ID (auto-incremento)
-        self.campos["id_produto"].configure(state="disabled")
+    
+    # Removida a linha que tentava desabilitar o id_produto que não existe mais
     
     def carregar_fornecedores(self):
         conn = None
@@ -328,8 +326,7 @@ class ProdutoCRUD:
     def limpar_campos(self):
         for nome, campo in self.campos.items():
             if isinstance(campo, ctk.CTkEntry):
-                if nome != "id_produto":
-                    campo.delete(0, "end")
+                campo.delete(0, "end")
             elif isinstance(campo, ctk.CTkComboBox):
                 campo.set("Selecione...")
     
@@ -337,24 +334,18 @@ class ProdutoCRUD:
         selected = self.tree.selection()
         if selected:
             values = self.tree.item(selected, "values")
-            
+        
             # Atualiza os campos com os dados selecionados
             self.limpar_campos()
-            
-            # ID Produto (se necessário)
-            # self.campos["id_produto"].configure(state="normal")
-            # self.campos["id_produto"].delete(0, "end")
-            # self.campos["id_produto"].insert(0, values[0])
-            # self.campos["id_produto"].configure(state="disabled")
-            
+        
             self.campos["nome"].insert(0, values[1])
             self.campos["descricao"].insert(0, values[2])
             self.campos["quantidade"].insert(0, values[3])
-            
+        
             # Formata o preço (remove "R$")
             preco = values[4].replace("R$", "").strip()
             self.campos["preco"].insert(0, preco)
-            
+        
             # Seleciona o fornecedor correspondente
             fornecedor = values[5]
             if fornecedor != "N/D":

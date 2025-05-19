@@ -1,11 +1,12 @@
 import customtkinter as ctk
 from db_config import conectar
-from tkinter import messagebox
+from CTkMessagebox import CTkMessagebox
 from tkinter import ttk
 import re
 
 class FornecedorCRUD:
-    def __init__(self):
+    def __init__(self,admin_menu=None):
+        self.admin_menu = admin_menu
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Fornecedor")
         self.janela.geometry("1000x700")
@@ -176,9 +177,8 @@ class FornecedorCRUD:
         # Dicionário para armazenar os campos
         self.campos = {}
         
-        # Configuração dos campos
+        # Configuração dos campos (sem ID)
         campos_config = [
-            ("id_fornecedor", "ID Fornecedor:", 100),
             ("nome", "Nome:", 300),
             ("cnpj", "CNPJ:", 150, "00.000.000/0000-00"),
             ("telefone", "Telefone:", 150, "(00) 0000-0000"),
@@ -211,9 +211,6 @@ class FornecedorCRUD:
                 self.campos[nome].bind("<KeyRelease>", self.formatar_cnpj_digitacao)
             elif nome == "telefone":
                 self.campos[nome].bind("<KeyRelease>", self.formatar_telefone_digitacao)
-        
-        # Desabilitar campo ID (auto-incremento)
-        self.campos["id_fornecedor"].configure(state="disabled")
     
     def formatar_cnpj_digitacao(self, event):
         # Pega o texto atual sem formatação
@@ -253,40 +250,6 @@ class FornecedorCRUD:
         self.campos["telefone"].delete(0, "end")
         self.campos["telefone"].insert(0, formatado)
     
-    def validar_cnpj(self, cnpj):
-        cnpj = re.sub(r'[^0-9]', '', cnpj)
-        
-        # Verifica se tem 14 dígitos
-        if len(cnpj) != 14:
-            return False
-        
-        # Verifica se todos os dígitos são iguais
-        if cnpj == cnpj[0] * 14:
-            return False
-        
-        # Cálculo do primeiro dígito verificador
-        soma = 0
-        peso = 5
-        for i in range(12):
-            soma += int(cnpj[i]) * peso
-            peso = 9 if peso == 2 else peso - 1
-        
-        resto = soma % 11
-        digito1 = 0 if resto < 2 else 11 - resto
-        
-        # Cálculo do segundo dígito verificador
-        soma = 0
-        peso = 6
-        for i in range(13):
-            soma += int(cnpj[i]) * peso
-            peso = 9 if peso == 2 else peso - 1
-        
-        resto = soma % 11
-        digito2 = 0 if resto < 2 else 11 - resto
-        
-        # Verifica se os dígitos calculados conferem com os informados
-        return int(cnpj[12]) == digito1 and int(cnpj[13]) == digito2
-    
     def validar_campos(self):
         # Verifica campos obrigatórios
         if not all([
@@ -294,19 +257,21 @@ class FornecedorCRUD:
             self.campos["cnpj"].get(),
             self.campos["telefone"].get()
         ]):
-            messagebox.showerror("Erro", "Preencha todos os campos obrigatórios!")
-            return False
-        
-        # Valida CNPJ
-        cnpj = re.sub(r'[^0-9]', '', self.campos["cnpj"].get())
-        if not self.validar_cnpj(cnpj):
-            messagebox.showerror("Erro", "CNPJ inválido!")
+            CTkMessagebox(
+                title="Erro",
+                message="Preencha todos os campos obrigatórios!",
+                icon="cancel"
+            )
             return False
         
         # Valida telefone (pelo menos 10 dígitos)
         telefone = re.sub(r'[^0-9]', '', self.campos["telefone"].get())
         if len(telefone) < 10:
-            messagebox.showerror("Erro", "Telefone deve ter pelo menos 10 dígitos!")
+            CTkMessagebox(
+                title="Erro",
+                message="Telefone deve ter pelo menos 10 dígitos!",
+                icon="cancel"
+            )
             return False
         
         return True
@@ -325,8 +290,7 @@ class FornecedorCRUD:
     def limpar_campos(self):
         for nome, campo in self.campos.items():
             if isinstance(campo, ctk.CTkEntry):
-                if nome != "id_fornecedor":
-                    campo.delete(0, "end")
+                campo.delete(0, "end")
     
     def carregar_dados_selecionados(self, event):
         selected = self.tree.selection()
@@ -335,12 +299,6 @@ class FornecedorCRUD:
             
             # Atualiza os campos com os dados selecionados
             self.limpar_campos()
-            
-            # ID Fornecedor (se necessário)
-            # self.campos["id_fornecedor"].configure(state="normal")
-            # self.campos["id_fornecedor"].delete(0, "end")
-            # self.campos["id_fornecedor"].insert(0, values[0])
-            # self.campos["id_fornecedor"].configure(state="disabled")
             
             self.campos["nome"].insert(0, values[1])
             self.campos["cnpj"].insert(0, values[2])
@@ -385,7 +343,11 @@ class FornecedorCRUD:
                 ))
                 
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao carregar fornecedores:\n{str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao carregar fornecedores:\n{str(e)}",
+                icon="cancel"
+            )
         finally:
             if cursor:
                 cursor.close()
@@ -419,13 +381,21 @@ class FornecedorCRUD:
             
             conn.commit()
             
-            messagebox.showinfo("Sucesso", "Fornecedor cadastrado com sucesso!")
+            CTkMessagebox(
+                title="Sucesso",
+                message="Fornecedor cadastrado com sucesso!",
+                icon="check"
+            )
             
             self.limpar_campos()
             self.listar_fornecedores()
             
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao cadastrar fornecedor:\n{str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao cadastrar fornecedor:\n{str(e)}",
+                icon="cancel"
+            )
         finally:
             if cursor:
                 cursor.close()
@@ -435,7 +405,11 @@ class FornecedorCRUD:
     def atualizar_fornecedor(self):
         selected = self.tree.selection()
         if not selected:
-            messagebox.showwarning("Aviso", "Selecione um fornecedor para atualizar!")
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecione um fornecedor para atualizar!",
+                icon="warning"
+            )
             return
             
         if not self.validar_campos():
@@ -469,12 +443,20 @@ class FornecedorCRUD:
             
             conn.commit()
             
-            messagebox.showinfo("Sucesso", "Fornecedor atualizado com sucesso!")
+            CTkMessagebox(
+                title="Sucesso",
+                message="Fornecedor atualizado com sucesso!",
+                icon="check"
+            )
             
             self.listar_fornecedores()
             
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao atualizar fornecedor:\n{str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao atualizar fornecedor:\n{str(e)}",
+                icon="cancel"
+            )
         finally:
             if cursor:
                 cursor.close()
@@ -484,16 +466,23 @@ class FornecedorCRUD:
     def excluir_fornecedor(self):
         selected = self.tree.selection()
         if not selected:
-            messagebox.showwarning("Aviso", "Selecione um fornecedor para excluir!")
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecione um fornecedor para excluir!",
+                icon="warning"
+            )
             return
         
         # Confirmação da exclusão
-        confirmacao = messagebox.askyesno(
-            "Confirmação", 
-            f"Tem certeza que deseja excluir o fornecedor {self.tree.item(selected, 'values')[1]}?"
+        confirmacao = CTkMessagebox(
+            title="Confirmação", 
+            message=f"Tem certeza que deseja excluir o fornecedor {self.tree.item(selected, 'values')[1]}?",
+            icon="question", 
+            option_1="Cancelar", 
+            option_2="Excluir"
         )
         
-        if confirmacao:
+        if confirmacao.get() == "Excluir":
             conn = None
             cursor = None
             try:
@@ -511,21 +500,29 @@ class FornecedorCRUD:
                 
                 conn.commit()
                 
-                messagebox.showinfo("Sucesso", "Fornecedor excluído com sucesso!")
+                CTkMessagebox(
+                    title="Sucesso",
+                    message="Fornecedor excluído com sucesso!",
+                    icon="check"
+                )
                 
                 self.limpar_campos()
                 self.listar_fornecedores()
                 
             except Exception as e:
-                messagebox.showerror("Erro", f"Falha ao excluir fornecedor:\n{str(e)}")
+                CTkMessagebox(
+                    title="Erro",
+                    message=f"Falha ao excluir fornecedor:\n{str(e)}",
+                    icon="cancel"
+                )
             finally:
                 if cursor:
                     cursor.close()
                 if conn:
                     conn.close()
 
-def abrir():
-    app = FornecedorCRUD()
+def abrir(admin_menu=None):
+    app = FornecedorCRUD(admin_menu)
     app.janela.mainloop()
 
 if __name__ == "__main__":

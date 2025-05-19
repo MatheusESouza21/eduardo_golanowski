@@ -6,12 +6,15 @@ from crud_produto import abrir as abrir_crud_produto
 from crud_funcionario import abrir as abrir_crud_funcionario
 
 class AdminMenu:
-    def __init__(self):
+    def __init__(self, login_callback=None):
         # Configuração da janela principal
         self.janela = ctk.CTk()
         self.janela.title("Painel Administrativo")
         self.janela.geometry("600x500")
         self.janela.resizable(False, False)
+        
+        # Callback para retornar à tela de login
+        self.login_callback = login_callback
         
         # Configurar tema
         ctk.set_appearance_mode("dark")
@@ -21,22 +24,71 @@ class AdminMenu:
         self.fechando = False
         self.callbacks = []  # Armazenar callbacks "after"
         
+        # Frame superior para o botão de logout
+        self.top_frame = ctk.CTkFrame(self.janela, fg_color="transparent", height=40)
+        self.top_frame.pack(fill="x", padx=10, pady=5)
+        self.top_frame.pack_propagate(False)
+        
+        # Botão de logout no canto superior direito
+        self.logout_btn = ctk.CTkButton(
+            self.top_frame,
+            text="🔒 Logout",
+            command=self.fazer_logout,
+            width=100,
+            height=30,
+            fg_color="transparent",
+            border_width=1,
+            border_color="#dc3545",
+            text_color="#dc3545",
+            hover_color="#495057",
+            font=("Arial", 12)
+        )
+        self.logout_btn.pack(side="right", padx=5)
+        
         # Frame principal
         self.main_frame = ctk.CTkFrame(self.janela, fg_color="transparent")
-        self.main_frame.pack(pady=20, padx=20, fill="both", expand=True)
+        self.main_frame.pack(pady=10, padx=20, fill="both", expand=True)
         
         self.criar_interface()
         
         # Configurar protocolo de fechamento
         self.janela.protocol("WM_DELETE_WINDOW", self.fechar_janela)
+        
+        # Variável para controlar subjanelas
+        self.subjanelas = []
     
-    def fechar_janela(self):
-        """Método para fechar a janela corretamente"""
+    def fazer_logout(self):
+        """Método para fazer logout e voltar para tela de login"""
+        if self.fechando:
+            return
+            
         self.fechando = True
+        
         # Cancelar todos os callbacks "after"
         for callback in self.callbacks:
             self.janela.after_cancel(callback)
+        
+        # Fechar todas as subjanelas primeiro
+        for janela in self.subjanelas:
+            try:
+                janela.destroy()
+            except:
+                pass
+        
+        # Fechar a janela atual
         self.janela.destroy()
+        
+        # Chamar o callback para voltar à tela de login, se existir
+        if self.login_callback:
+            self.login_callback()
+    
+    def fechar_janela(self):
+        """Método para fechar a janela corretamente"""
+        self.fazer_logout()
+    
+    def registrar_subjanela(self, janela):
+        """Registra uma subjanela para fechar corretamente no logout"""
+        self.subjanelas.append(janela)
     
     def criar_interface(self):
         # Título
@@ -44,7 +96,7 @@ class AdminMenu:
             self.main_frame, 
             text="Painel Administrativo", 
             font=("Arial", 22, "bold")
-        ).pack(pady=(10, 30))
+        ).pack(pady=(0, 30))
         
         # Frame dos botões
         btn_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
@@ -96,7 +148,7 @@ class AdminMenu:
         ctk.CTkButton(
             self.main_frame,
             text="🚪 Sair do Sistema",
-            command=self.fechar_janela,
+            command=self.fazer_logout,
             fg_color="transparent",
             border_width=2,
             border_color="#dc3545",
@@ -116,41 +168,56 @@ class AdminMenu:
     def abrir_dashboard(self):
         if not self.fechando:
             self.janela.withdraw()
-            from dashboard import DashboardApp  # Importe aqui para evitar importação circular
-            dashboard = DashboardApp()
+            from dashboard import DashboardApp
+            dashboard = DashboardApp(self)
+            self.registrar_subjanela(dashboard.root)
             dashboard.root.mainloop()
-
-            dashboard_app.root.protocol("WM_DELETE_WINDOW", lambda: self.on_dashboard_close(dashboard_app))
-            dashboard_app.root.mainloop()
-    
-    def on_dashboard_close(self, dashboard_app):
-        """Função chamada quando o dashboard é fechado"""
-        dashboard_app.root.destroy()
-        self.janela.deiconify()  # Mostra o menu admin novamente
     
     def abrir_crud_usuario(self):
         if not self.fechando:
+            # Desabilita o botão temporariamente para evitar múltiplos cliques
+            self.janela.update_idletasks()
+        
+            # Cria a janela CRUD de usuário
+            janela_crud = abrir_crud_usuario(self, self.login_callback)
+        
+            # Configura o comportamento ao fechar a janela CRUD
+            def on_crud_close():
+                if self.janela.winfo_exists():
+                    self.janela.deiconify()
+                if janela_crud.winfo_exists():
+                    janela_crud.destroy()
+        
+            janela_crud.protocol("WM_DELETE_WINDOW", on_crud_close)
+        
+            # Esconde a janela principal somente após a CRUD estar pronta
             self.janela.withdraw()
-            abrir_crud_usuario(self)
-    
+        
+            # Mantém referência à janela CRUD
+            self.registrar_subjanela(janela_crud)
+        
+            # Força o foco na nova janela
+            janela_crud.focus_force()
+            janela_crud.grab_set()
+
     def abrir_crud_fornecedor(self):
         if not self.fechando:
             self.janela.withdraw()
-            abrir_crud_fornecedor(self)
+            janela_crud = abrir_crud_fornecedor(self, self.login_callback)
+            self.registrar_subjanela(janela_crud)
     
     def abrir_crud_produto(self):
         if not self.fechando:
             self.janela.withdraw()
-            abrir_crud_produto(self)
+            janela_crud = abrir_crud_produto(self, self.login_callback)
+            self.registrar_subjanela(janela_crud)
     
     def abrir_crud_funcionario(self):
         if not self.fechando:
             self.janela.withdraw()
-            abrir_crud_funcionario(self)
+            janela_crud = abrir_crud_funcionario(self, self.login_callback)
+            self.registrar_subjanela(janela_crud)
 
-def abrir_menu_admin():
-    app = AdminMenu()
+def abrir_menu_admin(login_callback=None):
+    app = AdminMenu(login_callback)
     app.janela.mainloop()
-
-if __name__ == "__main__":
-    abrir_menu_admin()
