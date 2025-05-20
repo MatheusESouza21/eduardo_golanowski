@@ -3,8 +3,8 @@ from tkinter import messagebox
 from db_config import conectar
 
 # Configuração do tema
-ctk.set_appearance_mode("dark")  # Tema escuro global
-ctk.set_default_color_theme("blue")  # Você pode usar "dark-blue" para um tema mais escuro
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 class LoginApp:
     def __init__(self):
@@ -12,23 +12,36 @@ class LoginApp:
         self.root.title("Sistema de Login")
         self.root.geometry("400x340")
         self.root.resizable(False, False)
+        self.root.configure(fg_color="#121212")
         
-        # Configuração do fundo preto
-        self.root.configure(fg_color="#121212")  # Preto com tom mais suave
-        
+        # Variável para controle de fechamento
         self.fechando = False
         
-        # Frame principal com fundo preto
+        # Frame principal
         self.frame = ctk.CTkFrame(
             self.root, 
-            fg_color="#121212",  # Cor de fundo do frame
-            border_color="#333333",  # Cor da borda para contraste
+            fg_color="#121212",
+            border_color="#333333",
             border_width=1
         )
         self.frame.pack(fill="both", expand=True, padx=20, pady=20)
         
         self.criar_interface_login()
+        
+        # Configurar o protocolo de fechamento
         self.root.protocol("WM_DELETE_WINDOW", self.fechar_janela)
+        
+        # Centralizar a janela
+        self.centralizar_janela()
+    
+    def centralizar_janela(self):
+        """Centraliza a janela na tela"""
+        self.root.update_idletasks()
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
+        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.root.winfo_screenheight() // 2) - (height // 2)
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
     
     def fechar_janela(self):
         """Método para fechar a janela corretamente"""
@@ -44,12 +57,12 @@ class LoginApp:
             self.entry_usuario.focus_set()
     
     def criar_interface_login(self):
-        # Título com estilo moderno
+        # Título
         label_titulo = ctk.CTkLabel(
             self.frame, 
             text="Login", 
             font=("Roboto", 24, "bold"),
-            text_color="#FFFFFF"  # Branco puro
+            text_color="#FFFFFF"
         )
         label_titulo.pack(pady=(10, 30))
         
@@ -58,19 +71,20 @@ class LoginApp:
             self.frame, 
             text="Usuário", 
             font=("Roboto", 12),
-            text_color="#CCCCCC"  # Cinza claro
+            text_color="#CCCCCC"
         ).pack()
         
         self.entry_usuario = ctk.CTkEntry(
             self.frame, 
             width=200,
-            fg_color="#333333",  # Fundo escuro
+            fg_color="#333333",
             border_color="#555555",
-            text_color="#FFFFFF",  # Texto branco
+            text_color="#FFFFFF",
             placeholder_text="Digite seu usuário",
             placeholder_text_color="#888888"
         )
         self.entry_usuario.pack(pady=5)
+        self.entry_usuario.bind("<Return>", lambda e: self.entry_senha.focus_set())
         
         # Campo de senha
         ctk.CTkLabel(
@@ -91,8 +105,9 @@ class LoginApp:
             placeholder_text_color="#888888"
         )
         self.entry_senha.pack(pady=5)
+        self.entry_senha.bind("<Return>", lambda e: self.verificar_login())
         
-        # Botão de login estilizado
+        # Botão de login
         login_btn = ctk.CTkButton(
             self.frame,
             text="Entrar",
@@ -100,14 +115,14 @@ class LoginApp:
             width=200,
             height=40,
             font=("Roboto", 14, "bold"),
-            fg_color="#1E90FF",  # Azul Dodger
-            hover_color="#187BCD",  # Azul mais escuro no hover
+            fg_color="#1E90FF",
+            hover_color="#187BCD",
             text_color="#FFFFFF",
             corner_radius=8
         )
         login_btn.pack(pady=20)
         
-        # Versão do sistema (opcional)
+        # Versão do sistema
         ctk.CTkLabel(
             self.frame,
             text="v1.0.0",
@@ -138,6 +153,7 @@ class LoginApp:
                 tipo = resultado[1]
                 self.root.withdraw()  # Esconde a janela de login
                 
+                # Importação dinâmica para evitar importação circular
                 if tipo == "comum":
                     from compra import abrir_tela_compra
                     abrir_tela_compra(id_usuario, self.mostrar_tela_login)

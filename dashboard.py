@@ -1,35 +1,78 @@
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import mysql.connector
+from mysql.connector import Error
 from datetime import datetime
 
 class DashboardApp:
-    def __init__(self):
-        self.root = ctk.CTk()
-        self.root.title("Gestão Comercial - Dashboard Premium")
-        self.root.geometry("1600x900")
-        
-        # Configuração do tema
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
-        
-        # Conexão com o MySQL
-        self.db = mysql.connector.connect(
-            host='127.0.0.1',
-            port=3306,
-            user='root',
-            password='',
-            database='matheuseduardodb_sa'
-        )
-        self.cursor = self.db.cursor()
-        
-        # Configurações de estilo
-        self.setup_styles()
-        self.setup_ui()
-    
+    def __init__(self, master_reference=None):
+        """Inicializa o dashboard com tratamento de erros"""
+        try:
+            # Configuração da janela
+            self.root = ctk.CTkToplevel() if master_reference else ctk.CTk()
+            self.master_reference = master_reference
+            
+            if master_reference:
+                self.root.transient(master_reference)
+                self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+            else:
+                self.root.protocol("WM_DELETE_WINDOW", self.root.destroy)
+            
+            self.root.title("Gestão Comercial - Dashboard Premium")
+            self.root.geometry("1600x900")
+            
+            # Configuração do tema
+            ctk.set_appearance_mode("dark")
+            ctk.set_default_color_theme("blue")
+            
+            # Conexão com o MySQL
+            self.db = None
+            self.cursor = None
+            self.connect_to_database()
+            
+            # Configurações de estilo
+            self.setup_styles()
+            self.setup_ui()
+            
+        except Exception as e:
+            self.show_error(f"Erro ao inicializar o dashboard: {str(e)}")
+            if master_reference:
+                master_reference.deiconify()
+
+    def connect_to_database(self):
+        """Estabelece conexão com o banco de dados com tratamento de erros"""
+        try:
+            self.db = mysql.connector.connect(
+                host='127.0.0.1',
+                port=3307,
+                user='root',
+                password='root',
+                database='matheuseduardodb_sa'
+            )
+            self.cursor = self.db.cursor()
+        except Error as e:
+            raise Exception(f"Erro de conexão com o banco de dados: {str(e)}")
+
+    def show_error(self, message):
+        """Mostra mensagem de erro"""
+        messagebox.showerror("Erro", message, parent=self.root if hasattr(self, 'root') else None)
+
+    def on_close(self):
+        """Método chamado ao fechar a janela"""
+        try:
+            if self.master_reference:
+                self.master_reference.deiconify()
+            if hasattr(self, 'cursor') and self.cursor:
+                self.cursor.close()
+            if hasattr(self, 'db') and self.db:
+                self.db.close()
+            self.root.destroy()
+        except Exception as e:
+            self.show_error(f"Erro ao fechar o dashboard: {str(e)}")
+
     def setup_styles(self):
         """Configura estilos personalizados"""
         self.font_title = ctk.CTkFont(size=24, weight="bold")
@@ -57,12 +100,14 @@ class DashboardApp:
     def fetch_data(self, query, params=None):
         """Executa uma consulta SQL e retorna os resultados"""
         try:
+            if not self.db.is_connected():
+                self.connect_to_database()
             self.cursor.execute(query, params or ())
             return self.cursor.fetchall()
-        except mysql.connector.Error as err:
-            print(f"Erro MySQL: {err}")
+        except Error as e:
+            self.show_error(f"Erro MySQL: {str(e)}")
             return []
-    
+
     def setup_ui(self):
         """Configura a interface principal"""
         # Layout principal
@@ -141,6 +186,20 @@ class DashboardApp:
         footer_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
         footer_frame.pack(side="bottom", fill="x", padx=15, pady=20)
         
+        # Botão de voltar (só mostra se tiver janela principal)
+        if self.master_reference:
+            back_btn = ctk.CTkButton(
+                footer_frame,
+                text="⬅ Voltar ao Menu",
+                command=self.on_close,
+                fg_color="#3498db",
+                hover_color="#2980b9",
+                font=self.font_body,
+                height=40,
+                corner_radius=8
+            )
+            back_btn.pack(fill="x", pady=(0, 15))
+        
         # Botão de atualização
         refresh_btn = ctk.CTkButton(
             footer_frame,
@@ -152,7 +211,7 @@ class DashboardApp:
             height=40,
             corner_radius=8
         )
-        refresh_btn.pack(fill="x", pady=(0, 15))
+        refresh_btn.pack(fill="x")
     
     def create_card(self, parent, title, value, icon="", color="primary", trend=""):
         """Cria um card de KPI estilizado"""
@@ -657,5 +716,8 @@ class DashboardApp:
         tree.pack(fill="both", expand=True)
 
 if __name__ == "__main__":
-    app = DashboardApp()
-    app.root.mainloop()
+    try:
+        app = DashboardApp()
+        app.root.mainloop()
+    except Exception as e:
+        messagebox.showerror("Erro Fatal", f"O aplicativo encontrou um erro e será fechado: {str(e)}")

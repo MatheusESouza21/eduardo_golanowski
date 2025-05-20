@@ -6,9 +6,10 @@ import datetime
 import decimal
 
 class TelaCompra:
-    def __init__(self, id_usuario):
-        self.id_usuario = id_usuario  # ID do usuário logado
-        self.carrinho = []  # Lista para armazenar os itens do carrinho
+    def __init__(self, id_usuario, callback_logout=None):
+        self.id_usuario = id_usuario
+        self.callback_logout = callback_logout
+        self.carrinho = []
         
         # Configuração da janela principal
         self.janela = ctk.CTk()
@@ -24,7 +25,34 @@ class TelaCompra:
         self.main_frame = ctk.CTkFrame(self.janela, fg_color="transparent")
         self.main_frame.pack(pady=20, padx=20, fill="both", expand=True)
         
+        # Botão de logout
+        self.btn_logout = ctk.CTkButton(
+            self.main_frame,
+            text="🔒 Logout",
+            command=self.fazer_logout,
+            width=100,
+            height=30,
+            fg_color="#6c757d",
+            hover_color="#5a6268",
+            font=("Arial", 12)
+        )
+        self.btn_logout.place(relx=0.02, rely=0.02, anchor="nw")
+        
         self.criar_interface()
+    
+    def fazer_logout(self):
+        msg = CTkMessagebox(
+            title="Confirmar Logout",
+            message="Deseja realmente sair da sua conta?",
+            icon="question",
+            option_1="Cancelar",
+            option_2="Sair"
+        )
+        
+        if msg.get() == "Sair":
+            self.janela.destroy()
+            if self.callback_logout:
+                self.callback_logout()
     
     def criar_interface(self):
         # Título
@@ -32,7 +60,7 @@ class TelaCompra:
             self.main_frame, 
             text="Sistema de Compras", 
             font=("Arial", 22, "bold")
-        ).pack(pady=(10, 20))
+        ).pack(pady=(40, 20))
         
         # Frame principal com produtos e carrinho
         content_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
@@ -776,8 +804,8 @@ class TelaCompra:
         if msg.get() == "Sair":
             self.janela.destroy()
 
-def abrir_tela_compra(id_usuario):
-    app = TelaCompra(id_usuario)
+def abrir_tela_compra(id_usuario, callback_logout=None):
+    app = TelaCompra(id_usuario, callback_logout)
     app.janela.mainloop()
 
 if __name__ == "__main__":
