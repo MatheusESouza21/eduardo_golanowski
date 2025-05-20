@@ -116,13 +116,11 @@ class AdminMenu:
     def abrir_dashboard(self):
         if not self.fechando:
             self.janela.withdraw()
-            from dashboard import DashboardApp  # Importe aqui para evitar importação circular
-            dashboard = DashboardApp()
-            dashboard.root.mainloop()
-
+            from dashboard import DashboardApp
+            dashboard_app = DashboardApp()
             dashboard_app.root.protocol("WM_DELETE_WINDOW", lambda: self.on_dashboard_close(dashboard_app))
             dashboard_app.root.mainloop()
-    
+
     def on_dashboard_close(self, dashboard_app):
         """Função chamada quando o dashboard é fechado"""
         dashboard_app.root.destroy()

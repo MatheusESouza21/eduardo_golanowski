@@ -51,6 +51,11 @@ class ProdutoCRUD:
         # Frame de botões
         self.btn_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
         self.btn_frame.pack(pady=15)
+
+        # Frame inferior para o botão Voltar
+        self.bottom_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.bottom_frame.pack(pady=5, padx=10, fill="x")
+
         
         # Botões de ação
         ctk.CTkButton(
@@ -88,6 +93,19 @@ class ProdutoCRUD:
             fg_color="#6c757d",
             hover_color="#5a6268"
         ).pack(side="left", padx=5)
+
+        # Botão Voltar ao Admin
+        ctk.CTkButton(
+            self.bottom_frame,
+            text="Voltar ao Admin",
+            command=self.voltar_admin,
+            fg_color="transparent",
+            border_width=1,
+            border_color="#6c757d",
+            text_color="#6c757d",
+            hover_color="#f8f9fa",
+            width=120
+        ).pack(side="right", padx=5)
         
         # Área de listagem
         self.list_frame = ctk.CTkFrame(self.main_frame)
@@ -120,7 +138,7 @@ class ProdutoCRUD:
         
         for col, width, anchor, coluna_db in colunas:
             self.tree.heading(col, text=col, 
-                            command=lambda c=coluna_db: self.ordenar_por_coluna(c))
+                              command=lambda c=coluna_db: self.ordenar_por_coluna(c))
             self.tree.column(col, width=width, anchor=anchor)
         
         # Scrollbar
@@ -207,7 +225,8 @@ class ProdutoCRUD:
         
         # Configuração dos campos
         campos_config = [
-            ("id_produto", "ID Produto:", 100),
+            # LINHA 175: Remova a linha abaixo para excluir o campo ID da interface.
+            # ("id_produto", "ID Produto:", 100), 
             ("nome", "Nome:", 300),
             ("descricao", "Descrição:", 300),
             ("quantidade", "Quantidade:", 100),
@@ -243,8 +262,8 @@ class ProdutoCRUD:
             # Posicionamento
             self.campos[nome].grid(row=idx, column=1, padx=5, pady=5, sticky="w")
         
-        # Desabilitar campo ID (auto-incremento)
-        self.campos["id_produto"].configure(state="disabled")
+        # LINHA 207-208: Remova ou comente estas linhas, pois o campo "id_produto" não existirá mais.
+        # self.campos["id_produto"].configure(state="disabled") 
     
     def carregar_fornecedores(self):
         conn = None
@@ -328,8 +347,8 @@ class ProdutoCRUD:
     def limpar_campos(self):
         for nome, campo in self.campos.items():
             if isinstance(campo, ctk.CTkEntry):
-                if nome != "id_produto":
-                    campo.delete(0, "end")
+                # LINHA 299: A condição `if nome != "id_produto":` não é mais necessária se o campo id_produto for removido.
+                campo.delete(0, "end")
             elif isinstance(campo, ctk.CTkComboBox):
                 campo.set("Selecione...")
     
@@ -338,15 +357,16 @@ class ProdutoCRUD:
         if selected:
             values = self.tree.item(selected, "values")
             
-            # Atualiza os campos com os dados selecionados
             self.limpar_campos()
             
-            # ID Produto (se necessário)
+            # LINHA 311-315: Remova ou comente estas linhas, pois o campo "id_produto" não existirá mais.
             # self.campos["id_produto"].configure(state="normal")
             # self.campos["id_produto"].delete(0, "end")
             # self.campos["id_produto"].insert(0, values[0])
             # self.campos["id_produto"].configure(state="disabled")
             
+            # Ajuste os índices dos 'values' após remover o ID do formulário,
+            # pois o `values` da treeview ainda incluirá o ID.
             self.campos["nome"].insert(0, values[1])
             self.campos["descricao"].insert(0, values[2])
             self.campos["quantidade"].insert(0, values[3])
@@ -379,7 +399,7 @@ class ProdutoCRUD:
             # Monta a query com ordenação dinâmica
             query = f"""
                 SELECT p.id_produto, p.nome, p.descricao, p.quantidade, 
-                       p.preco, f.nome as fornecedor
+                        p.preco, f.nome as fornecedor
                 FROM produto p
                 LEFT JOIN fornecedor f ON p.id_fornecedor = f.id_fornecedor
                 ORDER BY {self.ordenacao['coluna']} {self.ordenacao['direcao']}

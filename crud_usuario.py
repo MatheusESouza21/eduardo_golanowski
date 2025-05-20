@@ -4,12 +4,6 @@ from db_config import conectar
 from CTkMessagebox import CTkMessagebox
 
 class UsuarioCRUD:
-    import customtkinter as ctk
-from tkinter import ttk
-from db_config import conectar
-from CTkMessagebox import CTkMessagebox
-
-class UsuarioCRUD:
     def __init__(self, admin_menu=None):
         self.admin_menu = admin_menu
         self.janela = ctk.CTkToplevel()
@@ -381,8 +375,8 @@ class UsuarioCRUD:
         self.tipo_var.set("comum")
         self.tree.selection_remove(self.tree.selection())
 
-def abrir():
-    app = UsuarioCRUD()
+def abrir(admin_menu=None):
+    app = UsuarioCRUD(admin_menu)
     app.janela.mainloop()
 
 if __name__ == "__main__":

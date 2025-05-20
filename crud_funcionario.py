@@ -5,7 +5,8 @@ from CTkMessagebox import CTkMessagebox
 import re
 
 class FuncionarioCRUD:
-    def __init__(self):
+    def __init__(self, admin_menu=None):
+        self.admin_menu = admin_menu
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Funcionário")
         self.janela.geometry("1000x700")
@@ -46,6 +47,10 @@ class FuncionarioCRUD:
         # Frame de botões
         self.btn_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
         self.btn_frame.pack(pady=15)
+
+        # Frame inferior para o botão Voltar
+        self.bottom_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.bottom_frame.pack(pady=5, padx=10, fill="x")
         
         # Botões de ação
         ctk.CTkButton(
@@ -83,6 +88,19 @@ class FuncionarioCRUD:
             fg_color="#6c757d",
             hover_color="#5a6268"
         ).pack(side="left", padx=5)
+
+        # Botão Voltar ao Admin
+        ctk.CTkButton(
+            self.bottom_frame,
+            text="Voltar ao Admin",
+            command=self.voltar_admin,
+            fg_color="transparent",
+            border_width=1,
+            border_color="#6c757d",
+            text_color="#6c757d",
+            hover_color="#f8f9fa",
+            width=120
+        ).pack(side="right", padx=5)
         
         # Área de listagem
         self.list_frame = ctk.CTkFrame(self.main_frame)
@@ -142,6 +160,12 @@ class FuncionarioCRUD:
             command=self.listar_funcionarios,
             width=120
         ).pack(pady=10)
+
+    def voltar_admin(self):
+        """Fecha a janela atual e reabre o menu admin"""
+        self.janela.destroy()
+        if self.admin_menu:
+            self.admin_menu.janela.deiconify()
     
     def configurar_estilo_treeview(self):
         style = ttk.Style()
@@ -563,8 +587,8 @@ class FuncionarioCRUD:
                 if conn:
                     conn.close()
 
-def abrir():
-    app = FuncionarioCRUD()
+def abrir(admin_menu=None):
+    app = FuncionarioCRUD(admin_menu)
     app.janela.mainloop()
 
 if __name__ == "__main__":
