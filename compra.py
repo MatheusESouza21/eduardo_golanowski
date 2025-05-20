@@ -810,4 +810,4 @@ def abrir_tela_compra(id_usuario, callback_logout=None):
 
 if __name__ == "__main__":
     # Para teste, passe um ID de usuário fictício
-    abrir_tela_compra(1)
+    abrir_tela_compra()

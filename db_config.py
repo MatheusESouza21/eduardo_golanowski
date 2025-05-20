@@ -2,11 +2,19 @@ import mysql.connector
 
 def conectar():
     try:
-        conn = mysql.connector.connect(
+        '''conn = mysql.connector.connect(
             host='127.0.0.1',
             port=3307,
             user='root',  
             password='root',
+            database='matheuseduardodb_sa'
+        )
+        '''
+        conn = mysql.connector.connect(
+            host='127.0.0.1',
+            port=3306,
+            user='root',  
+            password='',
             database='matheuseduardodb_sa'
         )
         print("✅ Conexão estabelecida com sucesso!")

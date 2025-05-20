@@ -9,6 +9,9 @@ class UsuarioCRUD:
         self.admin_menu = admin_menu
         self.login_callback = login_callback
         
+        # Garanta que a janela master está configurada
+        self.master.after(100, self.master.lift)   # Força o foco
+        
         # Configuração do tema
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
@@ -16,12 +19,7 @@ class UsuarioCRUD:
         self.criar_interface()
         self.listar_usuarios()
         
-        # Configurar o que acontece ao fechar a janela
-        self.master.protocol("WM_DELETE_WINDOW", self.voltar_admin)
-        
-        # Forçar foco na nova janela
-        self.master.focus_force()
-        self.master.grab_set()
+        # O foco e grab_set já são tratados na função abrir()
     
     def criar_interface(self):
         # Frame principal
@@ -104,10 +102,10 @@ class UsuarioCRUD:
         style = ttk.Style()
         style.theme_use("default")
         style.configure("Custom.Treeview", 
-                      background="#2b2b2b", 
-                      foreground="white",
-                      fieldbackground="#2b2b2b",
-                      borderwidth=0)
+                        background="#2b2b2b", 
+                        foreground="white",
+                        fieldbackground="#2b2b2b",
+                        borderwidth=0)
         style.map("Custom.Treeview", background=[("selected", "#3b8ed0")])
         
         # Configurar colunas
@@ -385,53 +383,48 @@ class UsuarioCRUD:
     
     def voltar_admin(self):
         """Fecha a janela atual e reabre o menu admin"""
-        if self.admin_menu and self.admin_menu.janela.winfo_exists():
-            self.admin_menu.janela.deiconify()
+        if self.admin_menu: # Verifica se admin_menu existe
+            if self.admin_menu.janela.winfo_exists(): # Verifica se a janela do admin_menu ainda existe
+                self.admin_menu.janela.deiconify() # Reexibe a janela do AdminMenu
+            # Remover esta subjanela da lista de subjanelas do AdminMenu
+            if self.master in self.admin_menu.subjanelas:
+                self.admin_menu.subjanelas.remove(self.master)
         self.master.destroy()
     
     def fazer_logout(self):
         """Realiza o logout do sistema"""
         if self.admin_menu:
-            self.admin_menu.fechar_janela()
-        if self.login_callback:
-            self.login_callback()
-        self.master.destroy()
+            self.admin_menu.fazer_logout() # Chama o fazer_logout do AdminMenu para fechar tudo
+        else: # Se não houver AdminMenu (ex: executando o CRUD diretamente para testes)
+            self.master.destroy()
+            if self.login_callback:
+                self.login_callback()
 
 def abrir(admin_menu=None, login_callback=None):
-    # Verifica se a janela admin ainda existe
-    if admin_menu and not admin_menu.janela.winfo_exists():
-        return None
-    
-    # Cria a janela CRUD
     janela = ctk.CTkToplevel()
     janela.title("CRUD - Usuário")
     janela.geometry("700x650")
     janela.resizable(False, False)
     
-    # Configura o tema
-    ctk.set_appearance_mode("System")
-    ctk.set_default_color_theme("blue")
-    
-    # Instancia a aplicação CRUD
-    app = UsuarioCRUD(janela, admin_menu, login_callback)
-    
-    # Configura o comportamento ao fechar
-    def on_closing():
-        if admin_menu and admin_menu.janela.winfo_exists():
-            admin_menu.janela.deiconify()
-        janela.destroy()
-    
-    janela.protocol("WM_DELETE_WINDOW", on_closing)
-    
-    # Configura relação entre as janelas
     if admin_menu:
-        janela.transient(admin_menu.janela)
-        janela.grab_set()
+        janela.transient(admin_menu.janela)  # Define a janela pai
+        janela.grab_set()                    # Torna a janela modal
+        # O registro do WM_DELETE_WINDOW agora é feito no AdminMenu através de registrar_subjanela
+    
+    app = UsuarioCRUD(janela, admin_menu, login_callback)
     
     return janela
 
 if __name__ == "__main__":
+    # Este bloco é para testar o CRUD de usuário diretamente, sem o menu admin
     root = ctk.CTk()
-    root.withdraw()  # Esconde a janela principal
-    abrir()
-    root.mainloop()
+    root.withdraw() # Oculta a janela principal vazia
+    
+    # Criar uma "janela de login" fictícia para o callback de logout
+    def fake_login_callback():
+        print("Voltando para a tela de login (fictícia)!")
+        root.destroy() # Fechar a janela principal fake
+    
+    # Abrir o CRUD de usuário sem um AdminMenu real
+    janela_crud = abrir(admin_menu=None, login_callback=fake_login_callback)
+    janela_crud.mainloop() # Chamar mainloop apenas quando executado como script principal para teste

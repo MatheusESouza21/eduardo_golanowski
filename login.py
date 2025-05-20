@@ -7,7 +7,8 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 class LoginApp:
-    def __init__(self):
+    def __init__(self, login_callback=None):
+        self.login_callback = login_callback
         self.root = ctk.CTk()
         self.root.title("Sistema de Login")
         self.root.geometry("400x340")
@@ -157,8 +158,8 @@ class LoginApp:
                 if tipo == "comum":
                     from compra import abrir_tela_compra
                     abrir_tela_compra(id_usuario, self.mostrar_tela_login)
-                elif tipo == "administrador":
-                    from admin_crud import abrir_menu_admin
+                if tipo == "administrador":
+                    from admin_crud import abrir_menu_admin # Corrigido para admin_menu
                     abrir_menu_admin(self.mostrar_tela_login)
             else:
                 messagebox.showerror("Erro", "Usuário ou senha inválidos")
