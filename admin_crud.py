@@ -180,18 +180,22 @@ class AdminMenu:
     
     def abrir_dashboard(self):
         if not self.fechando:
-            self.janela.withdraw()
-            from dashboard import DashboardApp # Importa aqui para evitar importação circular
-            dashboard_window = ctk.CTkToplevel(self.janela) # Crie a Toplevel diretamente aqui
-            # DashboardApp deve ser inicializada com a janela Toplevel e o AdminMenu
-            dashboard = DashboardApp(dashboard_window, self) 
-            self.registrar_subjanela(dashboard_window) # Registra a janela do dashboard
-            # Não é necessário chamar mainloop para CTkToplevel
+            self.janela.withdraw()  # Oculta a janela principal
+            # Cria a janela do dashboard como CTkToplevel
+            dashboard_window = ctk.CTkToplevel(self.janela)
+            dashboard_window.title("Dashboard")
+            dashboard_window.geometry("1600x900")
+            dashboard_window.protocol("WM_DELETE_WINDOW", lambda: self.fechar_subjanela(dashboard_window))
+        
+            # Inicializa o DashboardApp passando a janela e a referência ao AdminMenu
+            from dashboard import DashboardApp
+            dashboard = DashboardApp(dashboard_window, self)
+            self.registrar_subjanela(dashboard_window)
     
     def abrir_crud_usuario(self):
         if not self.fechando:
             self.janela.withdraw()  # Oculta o AdminMenu (não destrói)
-            janela_crud = abrir_crud_usuario(self, self.login_callback)
+            janela_crud = abrir_crud_usuario(self)
             if janela_crud: # Garante que a janela foi criada
                 self.registrar_subjanela(janela_crud) # Isso irá configurar o WM_DELETE_WINDOW
                 # A função abrir_crud_usuario já faz o grab_set
@@ -199,14 +203,14 @@ class AdminMenu:
     def abrir_crud_fornecedor(self):
         if not self.fechando:
             self.janela.withdraw()
-            janela_crud = abrir_crud_fornecedor(self, self.login_callback)
+            janela_crud = abrir_crud_fornecedor(self)
             if janela_crud:
                 self.registrar_subjanela(janela_crud)
     
     def abrir_crud_produto(self):
         if not self.fechando:
             self.janela.withdraw()
-            janela_crud = abrir_crud_produto(self, self.login_callback)
+            janela_crud = abrir_crud_produto(self)
             if janela_crud:
                 self.registrar_subjanela(janela_crud)
     
