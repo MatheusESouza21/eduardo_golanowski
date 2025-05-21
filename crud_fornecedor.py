@@ -22,8 +22,14 @@ class FornecedorCRUD:
             'direcao': 'ASC'
         }
         
+        # Primeiro cria a interface completa
         self.criar_interface()
+        
+        # Só depois de tudo criado, lista os fornecedores
         self.listar_fornecedores()
+        
+        # Configurar o que acontece ao fechar a janela
+        self.janela.protocol("WM_DELETE_WINDOW", self.voltar_admin)
     
     def criar_interface(self):
         # Frame principal
@@ -85,9 +91,68 @@ class FornecedorCRUD:
             hover_color="#5a6268"
         ).pack(side="left", padx=5)
 
-        # Frame inferior para botão Voltar
+        # Área de listagem
+        self.list_frame = ctk.CTkFrame(self.main_frame)
+        self.list_frame.pack(pady=10, padx=10, fill="both", expand=True)
+        
+        ctk.CTkLabel(
+            self.list_frame, 
+            text="Lista de Fornecedores", 
+            font=("Arial", 14, "bold")
+        ).pack(pady=5)
+        
+        # Treeview para exibição
+        self.tree = ttk.Treeview(
+            self.list_frame,
+            columns=("ID", "Nome", "CNPJ", "Telefone", "Endereço"),
+            show="headings",
+            height=15,
+            selectmode="browse"
+        )
+        
+        # Configurar colunas com bind para ordenação
+        colunas = [
+            ("ID", 50, "center", "id_fornecedor"),
+            ("Nome", 200, "w", "nome"),
+            ("CNPJ", 150, "center", "cnpj"),
+            ("Telefone", 120, "center", "telefone"),
+            ("Endereço", 300, "w", "endereco")
+        ]
+        
+        for col, width, anchor, coluna_db in colunas:
+            self.tree.heading(col, text=col, 
+                            command=lambda c=coluna_db: self.ordenar_por_coluna(c))
+            self.tree.column(col, width=width, anchor=anchor)
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(
+            self.list_frame, 
+            orient="vertical", 
+            command=self.tree.yview
+        )
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        
+        # Layout
+        self.tree.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Configurar seleção
+        self.tree.bind("<<TreeviewSelect>>", self.carregar_dados_selecionados)
+        
+        # Estilização do Treeview
+        self.configurar_estilo_treeview()
+        
+        # Frame para botões inferiores
         self.bottom_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.bottom_frame.pack(pady=10, padx=10, fill="x", expand=True)
+        self.bottom_frame.pack(pady=10, fill="x")
+        
+        # Botão de atualizar lista
+        ctk.CTkButton(
+            self.bottom_frame,
+            text="Atualizar Lista",
+            command=self.listar_fornecedores,
+            width=120
+        ).pack(side="left", padx=5)
         
         # Botão Voltar ao Admin
         ctk.CTkButton(
@@ -101,15 +166,12 @@ class FornecedorCRUD:
             hover_color="#f8f9fa",
             width=120
         ).pack(side="right", padx=5)
-        
-        # Área de listagem
-        self.list_frame = ctk.CTkFrame(self.main_frame)
-        self.list_frame.pack(pady=10, padx=10, fill="both", expand=True)
-
+    
     def voltar_admin(self):
+        """Fecha a janela atual e reabre o menu admin"""
         self.janela.destroy()
         if self.admin_menu:
-            self.admin_menu.deiconify()
+            self.admin_menu.janela.deiconify()
         
         ctk.CTkLabel(
             self.list_frame, 
