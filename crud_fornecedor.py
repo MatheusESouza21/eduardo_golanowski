@@ -1,16 +1,16 @@
 import customtkinter as ctk
 from db_config import conectar
+from tkinter import messagebox
 from tkinter import ttk
 import re
-from CTkMessagebox import CTkMessagebox
 
 class FornecedorCRUD:
-    def __init__(self, admin_menu=None):
-        self.admin_menu = admin_menu
+    def __init__(self, janela_principal=None):
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Fornecedor")
         self.janela.geometry("1000x700")
         self.janela.resizable(False, False)
+        self.janela_principal = janela_principal
         
         # Configuração do tema
         ctk.set_appearance_mode("System")
@@ -22,14 +22,8 @@ class FornecedorCRUD:
             'direcao': 'ASC'
         }
         
-        # Primeiro cria a interface completa
         self.criar_interface()
-        
-        # Só depois de tudo criado, lista os fornecedores
         self.listar_fornecedores()
-        
-        # Configurar o que acontece ao fechar a janela
-        self.janela.protocol("WM_DELETE_WINDOW", self.voltar_admin)
     
     def criar_interface(self):
         # Frame principal
@@ -90,94 +84,45 @@ class FornecedorCRUD:
             fg_color="#6c757d",
             hover_color="#5a6268"
         ).pack(side="left", padx=5)
-
+        
         # Área de listagem
         self.list_frame = ctk.CTkFrame(self.main_frame)
         self.list_frame.pack(pady=10, padx=10, fill="both", expand=True)
         
+        # Frame para cabeçalho da lista
+        self.list_header_frame = ctk.CTkFrame(self.list_frame, fg_color="transparent")
+        self.list_header_frame.pack(fill="x", pady=(0, 10))
+        
+        # Título da lista
         ctk.CTkLabel(
-            self.list_frame, 
+            self.list_header_frame, 
             text="Lista de Fornecedores", 
             font=("Arial", 14, "bold")
-        ).pack(pady=5)
+        ).pack(side="left", padx=5)
         
-        # Treeview para exibição
-        self.tree = ttk.Treeview(
-            self.list_frame,
-            columns=("ID", "Nome", "CNPJ", "Telefone", "Endereço"),
-            show="headings",
-            height=15,
-            selectmode="browse"
-        )
-        
-        # Configurar colunas com bind para ordenação
-        colunas = [
-            ("ID", 50, "center", "id_fornecedor"),
-            ("Nome", 200, "w", "nome"),
-            ("CNPJ", 150, "center", "cnpj"),
-            ("Telefone", 120, "center", "telefone"),
-            ("Endereço", 300, "w", "endereco")
-        ]
-        
-        for col, width, anchor, coluna_db in colunas:
-            self.tree.heading(col, text=col, 
-                            command=lambda c=coluna_db: self.ordenar_por_coluna(c))
-            self.tree.column(col, width=width, anchor=anchor)
-        
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(
-            self.list_frame, 
-            orient="vertical", 
-            command=self.tree.yview
-        )
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        
-        # Layout
-        self.tree.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        # Configurar seleção
-        self.tree.bind("<<TreeviewSelect>>", self.carregar_dados_selecionados)
-        
-        # Estilização do Treeview
-        self.configurar_estilo_treeview()
-        
-        # Frame para botões inferiores
-        self.bottom_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.bottom_frame.pack(pady=10, fill="x")
+        # Frame para botões do cabeçalho
+        self.header_buttons_frame = ctk.CTkFrame(self.list_header_frame, fg_color="transparent")
+        self.header_buttons_frame.pack(side="right")
         
         # Botão de atualizar lista
         ctk.CTkButton(
-            self.bottom_frame,
+            self.header_buttons_frame,
             text="Atualizar Lista",
             command=self.listar_fornecedores,
             width=120
         ).pack(side="left", padx=5)
         
-        # Botão Voltar ao Admin
+        # Botão de voltar - CORRIGIDO
         ctk.CTkButton(
-            self.bottom_frame,
-            text="Voltar ao Admin",
-            command=self.voltar_admin,
+            self.header_buttons_frame,
+            text="⬅️ Voltar",
+            command=self.voltar,
             fg_color="transparent",
             border_width=1,
-            border_color="#6c757d",
-            text_color="#6c757d",
-            hover_color="#f8f9fa",
-            width=120
-        ).pack(side="right", padx=5)
-    
-    def voltar_admin(self):
-        """Fecha a janela atual e reabre o menu admin"""
-        self.janela.destroy()
-        if self.admin_menu:
-            self.admin_menu.janela.deiconify()
-        
-        ctk.CTkLabel(
-            self.list_frame, 
-            text="Lista de Fornecedores", 
-            font=("Arial", 14, "bold")
-        ).pack(pady=5)
+            text_color=("gray10", "#DCE4EE"),
+            width=120,
+            hover_color="#2b2b2b"
+        ).pack(side="left", padx=5)
         
         # Treeview para exibição
         self.tree = ttk.Treeview(
@@ -188,7 +133,7 @@ class FornecedorCRUD:
             selectmode="browse"
         )
         
-        # Configurar colunas com bind para ordenação
+        # Configurar colunas
         colunas = [
             ("ID", 50, "center", "id_fornecedor"),
             ("Nome", 200, "w", "nome"),
@@ -219,14 +164,6 @@ class FornecedorCRUD:
         
         # Estilização do Treeview
         self.configurar_estilo_treeview()
-        
-        # Botão de atualizar lista
-        ctk.CTkButton(
-            self.list_frame,
-            text="Atualizar Lista",
-            command=self.listar_fornecedores,
-            width=120
-        ).pack(pady=10)
     
     def configurar_estilo_treeview(self):
         style = ttk.Style()
@@ -254,31 +191,26 @@ class FornecedorCRUD:
         )
     
     def criar_campos_formulario(self):
-        # Frame para os campos
         campos_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
         campos_frame.pack(fill="x", padx=10, pady=5)
         
-        # Dicionário para armazenar os campos
         self.campos = {}
         
-        # Configuração dos campos (removido o campo id_fornecedor)
         campos_config = [
+            ("id_fornecedor", "ID Fornecedor:", 100),
             ("nome", "Nome:", 300),
             ("cnpj", "CNPJ:", 150, "00.000.000/0000-00"),
             ("telefone", "Telefone:", 150, "(00) 0000-0000"),
             ("endereco", "Endereço:", 400)
         ]
         
-        # Criar campos dinamicamente
         for idx, (nome, label, largura, *placeholder) in enumerate(campos_config):
-            # Label
             ctk.CTkLabel(
                 campos_frame, 
                 text=label,
                 font=("Arial", 12)
             ).grid(row=idx, column=0, padx=5, pady=5, sticky="e")
             
-            # Entry
             placeholder_text = placeholder[0] if placeholder else ""
             self.campos[nome] = ctk.CTkEntry(
                 campos_frame,
@@ -287,20 +219,18 @@ class FornecedorCRUD:
                 font=("Arial", 12)
             )
             
-            # Posicionamento
             self.campos[nome].grid(row=idx, column=1, padx=5, pady=5, sticky="w")
             
-            # Bind para formatação automática
             if nome == "cnpj":
                 self.campos[nome].bind("<KeyRelease>", self.formatar_cnpj_digitacao)
             elif nome == "telefone":
                 self.campos[nome].bind("<KeyRelease>", self.formatar_telefone_digitacao)
+        
+        self.campos["id_fornecedor"].configure(state="disabled")
     
     def formatar_cnpj_digitacao(self, event):
-        # Pega o texto atual sem formatação
         texto = re.sub(r'[^0-9]', '', self.campos["cnpj"].get())
         
-        # Aplica a máscara
         formatado = ""
         if len(texto) > 0:
             formatado = texto[:2]
@@ -313,15 +243,12 @@ class FornecedorCRUD:
         if len(texto) > 12:
             formatado += "-" + texto[12:14]
         
-        # Atualiza o campo
         self.campos["cnpj"].delete(0, "end")
         self.campos["cnpj"].insert(0, formatado)
     
     def formatar_telefone_digitacao(self, event):
-        # Pega o texto atual sem formatação
         texto = re.sub(r'[^0-9]', '', self.campos["telefone"].get())
         
-        # Aplica a máscara
         formatado = ""
         if len(texto) > 0:
             formatado = "(" + texto[:2]
@@ -330,13 +257,62 @@ class FornecedorCRUD:
         if len(texto) > 6:
             formatado += "-" + texto[6:10]
         
-        # Atualiza o campo
         self.campos["telefone"].delete(0, "end")
         self.campos["telefone"].insert(0, formatado)
     
+    def validar_cnpj(self, cnpj):
+        cnpj = re.sub(r'[^0-9]', '', cnpj)
+        
+        if len(cnpj) != 14:
+            return False
+        
+        if cnpj == cnpj[0] * 14:
+            return False
+        
+        # Cálculo do primeiro dígito verificador
+        soma = 0
+        peso = 5
+        for i in range(12):
+            soma += int(cnpj[i]) * peso
+            peso = 9 if peso == 2 else peso - 1
+        
+        resto = soma % 11
+        digito1 = 0 if resto < 2 else 11 - resto
+        
+        # Cálculo do segundo dígito verificador
+        soma = 0
+        peso = 6
+        for i in range(13):
+            soma += int(cnpj[i]) * peso
+            peso = 9 if peso == 2 else peso - 1
+        
+        resto = soma % 11
+        digito2 = 0 if resto < 2 else 11 - resto
+        
+        return int(cnpj[12]) == digito1 and int(cnpj[13]) == digito2
+    
+    def validar_campos(self):
+        if not all([
+            self.campos["nome"].get(),
+            self.campos["cnpj"].get(),
+            self.campos["telefone"].get()
+        ]):
+            messagebox.showerror("Erro", "Preencha todos os campos obrigatórios!")
+            return False
+        
+        cnpj = re.sub(r'[^0-9]', '', self.campos["cnpj"].get())
+        if not self.validar_cnpj(cnpj):
+            messagebox.showerror("Erro", "CNPJ inválido!")
+            return False
+        
+        telefone = re.sub(r'[^0-9]', '', self.campos["telefone"].get())
+        if len(telefone) < 10:
+            messagebox.showerror("Erro", "Telefone deve ter pelo menos 10 dígitos!")
+            return False
+        
+        return True
+    
     def ordenar_por_coluna(self, coluna):
-        """Ordena os dados pela coluna clicada"""
-        # Alterna a direção se clicar na mesma coluna
         if self.ordenacao['coluna'] == coluna:
             self.ordenacao['direcao'] = 'DESC' if self.ordenacao['direcao'] == 'ASC' else 'ASC'
         else:
@@ -348,23 +324,20 @@ class FornecedorCRUD:
     def limpar_campos(self):
         for nome, campo in self.campos.items():
             if isinstance(campo, ctk.CTkEntry):
-                campo.delete(0, "end")
+                if nome != "id_fornecedor":
+                    campo.delete(0, "end")
     
     def carregar_dados_selecionados(self, event):
         selected = self.tree.selection()
         if selected:
             values = self.tree.item(selected, "values")
-            
-            # Atualiza os campos com os dados selecionados
             self.limpar_campos()
-            
             self.campos["nome"].insert(0, values[1])
             self.campos["cnpj"].insert(0, values[2])
             self.campos["telefone"].insert(0, values[3])
             self.campos["endereco"].insert(0, values[4])
     
     def listar_fornecedores(self):
-        # Limpa a treeview
         for item in self.tree.get_children():
             self.tree.delete(item)
         
@@ -374,7 +347,6 @@ class FornecedorCRUD:
             conn = conectar()
             cursor = conn.cursor()
             
-            # Monta a query com ordenação dinâmica
             query = f"""
                 SELECT id_fornecedor, nome, cnpj, telefone, endereco
                 FROM fornecedor
@@ -384,28 +356,22 @@ class FornecedorCRUD:
             cursor.execute(query)
             
             for fornecedor in cursor.fetchall():
-                # Formata CNPJ
                 cnpj = fornecedor[2]
                 cnpj_formatado = f"{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}" if cnpj else ""
                 
-                # Formata telefone
                 telefone = fornecedor[3]
                 telefone_formatado = f"({telefone[:2]}) {telefone[2:6]}-{telefone[6:]}" if telefone and len(telefone) >= 10 else telefone
                 
                 self.tree.insert("", "end", values=(
-                    fornecedor[0],  # ID
-                    fornecedor[1],  # Nome
-                    cnpj_formatado, # CNPJ formatado
-                    telefone_formatado,  # Telefone formatado
-                    fornecedor[4]   # Endereço
+                    fornecedor[0],
+                    fornecedor[1],
+                    cnpj_formatado,
+                    telefone_formatado,
+                    fornecedor[4]
                 ))
                 
         except Exception as e:
-            CTkMessagebox(
-                title="Erro", 
-                message=f"Falha ao carregar fornecedores:\n{str(e)}",
-                icon="cancel"
-            )
+            messagebox.showerror("Erro", f"Falha ao carregar fornecedores:\n{str(e)}")
         finally:
             if cursor:
                 cursor.close()
@@ -413,17 +379,18 @@ class FornecedorCRUD:
                 conn.close()
     
     def inserir_fornecedor(self):
+        if not self.validar_campos():
+            return
+        
         conn = None
         cursor = None
         try:
             conn = conectar()
             cursor = conn.cursor()
             
-            # Prepara os dados
             cnpj = re.sub(r'[^0-9]', '', self.campos["cnpj"].get())
             telefone = re.sub(r'[^0-9]', '', self.campos["telefone"].get())
             
-            # Executa a inserção
             cursor.execute("""
                 INSERT INTO fornecedor (nome, cnpj, telefone, endereco)
                 VALUES (%s, %s, %s, %s)
@@ -435,22 +402,12 @@ class FornecedorCRUD:
             ))
             
             conn.commit()
-            
-            CTkMessagebox(
-                title="Sucesso", 
-                message="Fornecedor cadastrado com sucesso!",
-                icon="check"
-            )
-            
+            messagebox.showinfo("Sucesso", "Fornecedor cadastrado com sucesso!")
             self.limpar_campos()
             self.listar_fornecedores()
             
         except Exception as e:
-            CTkMessagebox(
-                title="Erro", 
-                message=f"Falha ao cadastrar fornecedor:\n{str(e)}",
-                icon="cancel"
-            )
+            messagebox.showerror("Erro", f"Falha ao cadastrar fornecedor:\n{str(e)}")
         finally:
             if cursor:
                 cursor.close()
@@ -460,11 +417,10 @@ class FornecedorCRUD:
     def atualizar_fornecedor(self):
         selected = self.tree.selection()
         if not selected:
-            CTkMessagebox(
-                title="Aviso", 
-                message="Selecione um fornecedor para atualizar!",
-                icon="warning"
-            )
+            messagebox.showwarning("Aviso", "Selecione um fornecedor para atualizar!")
+            return
+        
+        if not self.validar_campos():
             return
         
         conn = None
@@ -473,14 +429,10 @@ class FornecedorCRUD:
             conn = conectar()
             cursor = conn.cursor()
             
-            # Obtém o ID do fornecedor selecionado
             fornecedor_id = self.tree.item(selected, "values")[0]
-            
-            # Prepara os dados
             cnpj = re.sub(r'[^0-9]', '', self.campos["cnpj"].get())
             telefone = re.sub(r'[^0-9]', '', self.campos["telefone"].get())
             
-            # Executa a atualização
             cursor.execute("""
                 UPDATE fornecedor 
                 SET nome = %s, cnpj = %s, telefone = %s, endereco = %s
@@ -494,21 +446,11 @@ class FornecedorCRUD:
             ))
             
             conn.commit()
-            
-            CTkMessagebox(
-                title="Sucesso", 
-                message="Fornecedor atualizado com sucesso!",
-                icon="check"
-            )
-            
+            messagebox.showinfo("Sucesso", "Fornecedor atualizado com sucesso!")
             self.listar_fornecedores()
             
         except Exception as e:
-            CTkMessagebox(
-                title="Erro", 
-                message=f"Falha ao atualizar fornecedor:\n{str(e)}",
-                icon="cancel"
-            )
+            messagebox.showerror("Erro", f"Falha ao atualizar fornecedor:\n{str(e)}")
         finally:
             if cursor:
                 cursor.close()
@@ -518,63 +460,49 @@ class FornecedorCRUD:
     def excluir_fornecedor(self):
         selected = self.tree.selection()
         if not selected:
-            CTkMessagebox(
-                title="Aviso", 
-                message="Selecione um fornecedor para excluir!",
-                icon="warning"
-            )
+            messagebox.showwarning("Aviso", "Selecione um fornecedor para excluir!")
             return
         
-        # Confirmação da exclusão
-        confirmacao = CTkMessagebox(
-            title="Confirmação", 
-            message=f"Tem certeza que deseja excluir o fornecedor {self.tree.item(selected, 'values')[1]}?",
-            icon="question", 
-            option_1="Cancelar", 
-            option_2="Sim"
+        confirmacao = messagebox.askyesno(
+            "Confirmação", 
+            f"Tem certeza que deseja excluir o fornecedor {self.tree.item(selected, 'values')[1]}?"
         )
         
-        if confirmacao.get() == "Sim":
+        if confirmacao:
             conn = None
             cursor = None
             try:
                 conn = conectar()
                 cursor = conn.cursor()
                 
-                # Obtém o ID do fornecedor selecionado
                 fornecedor_id = self.tree.item(selected, "values")[0]
                 
-                # Executa a exclusão
                 cursor.execute("""
                     DELETE FROM fornecedor 
                     WHERE id_fornecedor = %s
                 """, (fornecedor_id,))
                 
                 conn.commit()
-                
-                CTkMessagebox(
-                    title="Sucesso", 
-                    message="Fornecedor excluído com sucesso!",
-                    icon="check"
-                )
-                
+                messagebox.showinfo("Sucesso", "Fornecedor excluído com sucesso!")
                 self.limpar_campos()
                 self.listar_fornecedores()
                 
             except Exception as e:
-                CTkMessagebox(
-                    title="Erro", 
-                    message=f"Existem jogos cadastrados a esse fornecedor!",
-                    icon="cancel"
-                )
+                messagebox.showerror("Erro", f"Falha ao excluir fornecedor:\n{str(e)}")
             finally:
                 if cursor:
                     cursor.close()
                 if conn:
                     conn.close()
+    
+    def voltar(self):
+        """Volta para a janela principal"""
+        self.janela.destroy()
+        if self.janela_principal:
+            self.janela_principal.deiconify()
 
-def abrir(admin_menu=None):
-    app = FornecedorCRUD(admin_menu)
+def abrir(janela_principal=None):
+    app = FornecedorCRUD(janela_principal)
     app.janela.mainloop()
 
 if __name__ == "__main__":
