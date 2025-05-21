@@ -167,6 +167,19 @@ class UsuarioCRUD:
             hover_color="#f8f9fa",
             width=120
         ).pack(side="right", padx=5)
+
+        ctk.CTkButton(
+            self.bottom_frame,
+            text="Voltar ao Admin",
+            command=self.voltar_admin,
+            fg_color="transparent",
+            border_width=1,
+            border_color="#6c757d",
+            text_color="#6c757d",
+            hover_color="#f8f9fa",
+            width=120
+        ).pack(side="right", padx=5)
+        
         
         # Configurar evento de seleção
         self.tree.bind("<<TreeviewSelect>>", self.carregar_dados_selecionados)
@@ -400,31 +413,14 @@ class UsuarioCRUD:
             if self.login_callback:
                 self.login_callback()
 
-def abrir(admin_menu=None, login_callback=None):
-    janela = ctk.CTkToplevel()
-    janela.title("CRUD - Usuário")
-    janela.geometry("700x650")
-    janela.resizable(False, False)
-    
-    if admin_menu:
-        janela.transient(admin_menu.janela)  # Define a janela pai
-        janela.grab_set()                    # Torna a janela modal
-        # O registro do WM_DELETE_WINDOW agora é feito no AdminMenu através de registrar_subjanela
-    
-    app = UsuarioCRUD(janela, admin_menu, login_callback)
-    
-    return janela
+def voltar_admin(self):
+        self.janela.destroy()
+        if self.admin_menu:
+            self.admin_menu.deiconify()
+
+def abrir(admin_menu=None):
+    app = UsuarioCRUD(admin_menu)
+    app.janela.mainloop()
 
 if __name__ == "__main__":
-    # Este bloco é para testar o CRUD de usuário diretamente, sem o menu admin
-    root = ctk.CTk()
-    root.withdraw() # Oculta a janela principal vazia
-    
-    # Criar uma "janela de login" fictícia para o callback de logout
-    def fake_login_callback():
-        print("Voltando para a tela de login (fictícia)!")
-        root.destroy() # Fechar a janela principal fake
-    
-    # Abrir o CRUD de usuário sem um AdminMenu real
-    janela_crud = abrir(admin_menu=None, login_callback=fake_login_callback)
-    janela_crud.mainloop() # Chamar mainloop apenas quando executado como script principal para teste
+    abrir()
