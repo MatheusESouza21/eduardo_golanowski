@@ -91,6 +91,20 @@ class FornecedorCRUD:
             hover_color="#5a6268"
         ).pack(side="left", padx=5)
 
+
+        ctk.CTkButton(
+            self.btn_frame,
+            text="Voltar ao Admin",
+            command=self.voltar_admin,
+            fg_color="transparent",
+            border_width=1,
+            border_color="#6c757d",
+            text_color="#6c757d",
+            hover_color="#f8f9fa",
+            width=120
+        ).pack(side="right", padx=5)
+        
+
         # Área de listagem
         self.list_frame = ctk.CTkFrame(self.main_frame)
         self.list_frame.pack(pady=10, padx=10, fill="both", expand=True)
@@ -161,9 +175,9 @@ class FornecedorCRUD:
             command=self.voltar_admin,
             fg_color="transparent",
             border_width=1,
-            border_color="#6c757d",
-            text_color="#6c757d",
-            hover_color="#f8f9fa",
+            border_color="#010b13",
+            text_color="#10283d",
+            hover_color="#000305",
             width=120
         ).pack(side="right", padx=5)
     
@@ -575,7 +589,8 @@ class FornecedorCRUD:
 
 def abrir(admin_menu=None):
     app = FornecedorCRUD(admin_menu)
-    app.janela.mainloop()
+    # Removido o mainloop() daqui, pois não é necessário quando chamado de outra janela
+    return app  # Retorna a instância para possível controle externo
 
 if __name__ == "__main__":
     abrir()

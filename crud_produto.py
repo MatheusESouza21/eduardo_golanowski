@@ -9,7 +9,7 @@ class ProdutoCRUD:
         self.admin_menu = admin_menu
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Produto")
-        self.janela.geometry("1000x750")
+        self.janela.geometry("1000x700")
         self.janela.resizable(False, False)
         
         # Configuração do tema
@@ -51,12 +51,7 @@ class ProdutoCRUD:
         # Frame de botões
         self.btn_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
         self.btn_frame.pack(pady=15)
-
-        # Frame inferior para o botão Voltar
-        self.bottom_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.bottom_frame.pack(pady=5, padx=10, fill="x")
-
-        
+  
         # Botões de ação
         ctk.CTkButton(
             self.btn_frame, 
@@ -96,7 +91,7 @@ class ProdutoCRUD:
 
         # Botão Voltar ao Admin
         ctk.CTkButton(
-            self.bottom_frame,
+            self.btn_frame,
             text="Voltar ao Admin",
             command=self.voltar_admin,
             fg_color="transparent",
@@ -605,7 +600,8 @@ class ProdutoCRUD:
 
 def abrir(admin_menu=None):
     app = ProdutoCRUD(admin_menu)
-    app.janela.mainloop()
+    # Removido o mainloop() daqui, pois não é necessário quando chamado de outra janela
+    return app  # Retorna a instância para possível controle externo
 
 if __name__ == "__main__":
     abrir()

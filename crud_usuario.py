@@ -8,7 +8,7 @@ class UsuarioCRUD:
         self.admin_menu = admin_menu
         self.janela = ctk.CTkToplevel()
         self.janela.title("CRUD - Usuário")
-        self.janela.geometry("700x650")  # Aumentei a altura para acomodar o botão Voltar
+        self.janela.geometry("1000x700")
         self.janela.resizable(False, False)
         
         # Configuração do tema
@@ -78,6 +78,19 @@ class UsuarioCRUD:
             hover_color="darkgray",
             width=100
         ).pack(side="left", padx=5)
+
+        # Botão Voltar ao Admin
+        ctk.CTkButton(
+            self.btn_frame,
+            text="Voltar ao Admin",
+            command=self.voltar_admin,
+            fg_color="transparent",
+            border_width=1,
+            border_color="#6c757d",
+            text_color="#6c757d",
+            hover_color="#f8f9fa",
+            width=120
+        ).pack(side="right", padx=5)
         
         # Área de listagem
         self.list_frame = ctk.CTkFrame(self.main_frame)
@@ -142,18 +155,7 @@ class UsuarioCRUD:
             width=120
         ).pack(side="left", padx=5)
         
-        # Botão Voltar ao Admin
-        ctk.CTkButton(
-            self.bottom_frame,
-            text="Voltar ao Admin",
-            command=self.voltar_admin,
-            fg_color="transparent",
-            border_width=1,
-            border_color="#6c757d",
-            text_color="#6c757d",
-            hover_color="#f8f9fa",
-            width=120
-        ).pack(side="right", padx=5)
+        
         
         # Configurar evento de seleção
         self.tree.bind("<<TreeviewSelect>>", self.carregar_dados_selecionados)
@@ -163,7 +165,6 @@ class UsuarioCRUD:
         self.janela.destroy()
         if self.admin_menu:
             self.admin_menu.janela.deiconify()
-    
     
     def criar_campos_formulario(self):
         # Campo ID (oculto/invisível)
@@ -377,7 +378,10 @@ class UsuarioCRUD:
 
 def abrir(admin_menu=None):
     app = UsuarioCRUD(admin_menu)
-    app.janela.mainloop()
+    # Removido o mainloop() daqui, pois não é necessário quando chamado de outra janela
+    return app  # Retorna a instância para possível controle externo
 
 if __name__ == "__main__":
-    abrir()
+    # Somente quando executado diretamente chamamos mainloop()
+    app = abrir()
+    app.janela.mainloop()
