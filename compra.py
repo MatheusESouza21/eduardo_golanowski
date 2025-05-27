@@ -1,5 +1,4 @@
 import customtkinter as ctk
-from tkinter import messagebox
 from db_config import conectar
 from CTkMessagebox import CTkMessagebox
 import datetime
@@ -174,7 +173,6 @@ class TelaCompra:
             hover_color="#f8f9fa"
         ).pack(side="left", padx=5)
         
-        
         # Carregar produtos
         self.carregar_produtos()
     
@@ -216,7 +214,11 @@ class TelaCompra:
                 self.adicionar_item_lista(produto)
                 
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao carregar produtos: {str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao carregar produtos: {str(e)}",
+                icon="cancel"
+            )
         finally:
             if conn:
                 conn.close()
@@ -298,7 +300,11 @@ class TelaCompra:
                 item_existente['quantidade'] += 1
                 item_existente['subtotal'] = float(item_existente['quantidade']) * float(item_existente['preco'])
             else:
-                messagebox.showwarning("Aviso", "Quantidade indisponível em estoque!")
+                CTkMessagebox(
+                    title="Aviso",
+                    message="Quantidade indisponível em estoque!",
+                    icon="warning"
+                )
         else:
             # Adicionar novo item ao carrinho com quantidade 1
             novo_item = {
@@ -411,7 +417,11 @@ class TelaCompra:
         if msg.get() == "Remover":
             self.carrinho.remove(item)
             self.atualizar_carrinho()
-            messagebox.showinfo("Sucesso", "Item removido do carrinho!")
+            CTkMessagebox(
+                title="Sucesso",
+                message="Item removido do carrinho!",
+                icon="check"
+            )
     
     def alterar_quantidade_carrinho(self, item, delta):
         nova_quantidade = item['quantidade'] + delta
@@ -422,7 +432,11 @@ class TelaCompra:
             return
         
         if nova_quantidade > item['quantidade_disponivel']:
-            messagebox.showwarning("Aviso", f"Quantidade indisponível! Máximo: {item['quantidade_disponivel']}")
+            CTkMessagebox(
+                title="Aviso",
+                message=f"Quantidade indisponível! Máximo: {item['quantidade_disponivel']}",
+                icon="warning"
+            )
             return
         
         # Atualizar quantidade
@@ -447,7 +461,11 @@ class TelaCompra:
         if msg.get() == "Limpar":
             self.carrinho = []
             self.atualizar_carrinho()
-            messagebox.showinfo("Sucesso", "Carrinho limpo com sucesso!")
+            CTkMessagebox(
+                title="Sucesso",
+                message="Carrinho limpo com sucesso!",
+                icon="check"
+            )
     
     def pesquisar_produtos(self):
         filtro = self.entry_pesquisa.get()
@@ -455,7 +473,11 @@ class TelaCompra:
     
     def finalizar_compra(self):
         if not self.carrinho:
-            messagebox.showwarning("Aviso", "O carrinho está vazio!")
+            CTkMessagebox(
+                title="Aviso",
+                message="O carrinho está vazio!",
+                icon="warning"
+            )
             return
     
         total = sum(float(item['subtotal']) for item in self.carrinho)
@@ -513,7 +535,11 @@ class TelaCompra:
             except Exception as e:
                 if conn:
                     conn.rollback()
-                messagebox.showerror("Erro", f"Falha ao registrar compra: {str(e)}")
+                CTkMessagebox(
+                    title="Erro",
+                    message=f"Falha ao registrar compra: {str(e)}",
+                    icon="cancel"
+                )
             finally:
                 if conn:
                     conn.close()
@@ -602,7 +628,11 @@ class TelaCompra:
                 self.adicionar_item_historico(compra)
                 
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao carregar histórico: {str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao carregar histórico: {str(e)}",
+                icon="cancel"
+            )
         finally:
             if conn:
                 conn.close()
@@ -741,7 +771,11 @@ class TelaCompra:
                 ).pack(side="left", padx=2)
                 
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao carregar itens: {str(e)}")
+            CTkMessagebox(
+                title="Erro",
+                message=f"Falha ao carregar itens: {str(e)}",
+                icon="cancel"
+            )
         finally:
             if conn:
                 conn.close()
@@ -757,7 +791,11 @@ class TelaCompra:
             if data_fim:
                 datetime.datetime.strptime(data_fim, "%Y-%m-%d")
         except ValueError:
-            messagebox.showerror("Erro", "Formato de data inválido! Use YYYY-MM-DD")
+            CTkMessagebox(
+                title="Erro",
+                message="Formato de data inválido! Use YYYY-MM-DD",
+                icon="cancel"
+            )
             return
         
         self.carregar_historico(data_inicio, data_fim)
@@ -792,4 +830,4 @@ def abrir_tela_compra(id_usuario):
 
 if __name__ == "__main__":
     # Para teste, passe um ID de usuário fictício
-    abrir_tela_compra()
+    abrir_tela_compra(1)  # Adicionei um ID de usuário padrão para teste
