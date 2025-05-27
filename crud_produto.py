@@ -342,7 +342,6 @@ class ProdutoCRUD:
     def limpar_campos(self):
         for nome, campo in self.campos.items():
             if isinstance(campo, ctk.CTkEntry):
-                # LINHA 299: A condição `if nome != "id_produto":` não é mais necessária se o campo id_produto for removido.
                 campo.delete(0, "end")
             elif isinstance(campo, ctk.CTkComboBox):
                 campo.set("Selecione...")
@@ -354,14 +353,7 @@ class ProdutoCRUD:
             
             self.limpar_campos()
             
-            # LINHA 311-315: Remova ou comente estas linhas, pois o campo "id_produto" não existirá mais.
-            # self.campos["id_produto"].configure(state="normal")
-            # self.campos["id_produto"].delete(0, "end")
-            # self.campos["id_produto"].insert(0, values[0])
-            # self.campos["id_produto"].configure(state="disabled")
             
-            # Ajuste os índices dos 'values' após remover o ID do formulário,
-            # pois o `values` da treeview ainda incluirá o ID.
             self.campos["nome"].insert(0, values[1])
             self.campos["descricao"].insert(0, values[2])
             self.campos["quantidade"].insert(0, values[3])
@@ -600,8 +592,7 @@ class ProdutoCRUD:
 
 def abrir(admin_menu=None):
     app = ProdutoCRUD(admin_menu)
-    # Removido o mainloop() daqui, pois não é necessário quando chamado de outra janela
-    return app  # Retorna a instância para possível controle externo
+    return app  
 
 if __name__ == "__main__":
     abrir()
