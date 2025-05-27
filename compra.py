@@ -15,6 +15,7 @@ class TelaCompra:
         self.janela.title("Sistema de Compras")
         self.janela.geometry("1200x800")
         self.janela.resizable(False, False)
+        self.after_ids = []
         
         # Configurar tema
         ctk.set_appearance_mode("System")
@@ -163,11 +164,16 @@ class TelaCompra:
         
         ctk.CTkButton(
             btn_frame,
-            text="🚪 Sair",
-            command=self.confirmar_saida,
+            text="🔒 Logout",
+            command=self.logout,
             width=100,
-            fg_color="#dc3545"
+            fg_color="transparent",
+            border_width=2,
+            border_color="#6c757d",
+            text_color="#6c757d",
+            hover_color="#f8f9fa"
         ).pack(side="left", padx=5)
+        
         
         # Carregar produtos
         self.carregar_produtos()
@@ -515,7 +521,7 @@ class TelaCompra:
     def mostrar_historico(self):
         # Janela de histórico
         historico_window = ctk.CTkToplevel(self.janela)
-        historico_window.title("Histórico de Compras")
+        historico_window.title("Meu Histórico de Compras")
         historico_window.geometry("900x600")
         historico_window.resizable(False, False)
         historico_window.grab_set()  # Modal
@@ -527,7 +533,7 @@ class TelaCompra:
         # Título
         ctk.CTkLabel(
             main_frame,
-            text="Histórico de Compras",
+            text="Meu Histórico de Compras",
             font=("Arial", 18, "bold")
         ).pack(pady=10)
         
@@ -568,13 +574,12 @@ class TelaCompra:
         
         try:
             query = """
-            SELECT c.id_compra, c.data_compra, c.total, u.nome as usuario
+            SELECT c.id_compra, c.data_compra, c.total
             FROM compra c
-            JOIN usuario u ON c.id_usuario = u.id_usuario
-            WHERE 1=1
+            WHERE c.id_usuario = %s
             """
             
-            params = []
+            params = [self.id_usuario]
             
             if data_inicio and data_fim:
                 query += " AND c.data_compra BETWEEN %s AND %s"
@@ -632,16 +637,9 @@ class TelaCompra:
         
         ctk.CTkLabel(
             item_frame,
-            text=f"R$ {float(compra['total']):.2f}",  # Convertendo para float
+            text=f"R$ {float(compra['total']):.2f}",
             width=100,
             anchor="center"
-        ).pack(side="left", padx=5)
-        
-        ctk.CTkLabel(
-            item_frame,
-            text=compra['usuario'],
-            width=150,
-            anchor="w"
         ).pack(side="left", padx=5)
     
     def mostrar_detalhes_compra(self, id_compra):
@@ -764,7 +762,16 @@ class TelaCompra:
         
         self.carregar_historico(data_inicio, data_fim)
     
-    def confirmar_saida(self):
+    def fechar_janela(self):
+        """Método para fechar a janela corretamente"""
+        self.fechando = True
+        # Cancelar todos os callbacks "after"
+        for after_id in self.after_ids:
+            self.janela.after_cancel(after_id)
+        self.janela.destroy()
+    
+    def logout(self):
+        """Método para fazer logout e voltar para a tela de login"""
         msg = CTkMessagebox(
             title="Confirmação",
             message="Deseja realmente sair do sistema de compras?",
@@ -774,7 +781,10 @@ class TelaCompra:
         )
         
         if msg.get() == "Sair":
-            self.janela.destroy()
+            self.fechar_janela()
+            from login import App  # Importar aqui para evitar importação circular
+            login_app = App()
+            login_app.mainloop()
 
 def abrir_tela_compra(id_usuario):
     app = TelaCompra(id_usuario)
@@ -782,4 +792,4 @@ def abrir_tela_compra(id_usuario):
 
 if __name__ == "__main__":
     # Para teste, passe um ID de usuário fictício
-    abrir_tela_compra(1)
+    abrir_tela_compra()

@@ -378,10 +378,8 @@ class UsuarioCRUD:
 
 def abrir(admin_menu=None):
     app = UsuarioCRUD(admin_menu)
-    # Removido o mainloop() daqui, pois não é necessário quando chamado de outra janela
-    return app  # Retorna a instância para possível controle externo
+    return app 
 
 if __name__ == "__main__":
-    # Somente quando executado diretamente chamamos mainloop()
     app = abrir()
     app.janela.mainloop()

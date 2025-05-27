@@ -575,8 +575,7 @@ class FuncionarioCRUD:
 
 def abrir(admin_menu=None):
     app = FuncionarioCRUD(admin_menu)
-    # Removido o mainloop() daqui, pois não é necessário quando chamado de outra janela
-    return app  # Retorna a instância para possível controle externo
+    return app  
 
 if __name__ == "__main__":
     abrir()
